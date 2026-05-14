@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SSAT Practice Test Grader</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&display=swap');
+  :root {
+    --navy:#0d1b2a; --navy2:#1a2d42; --gold:#c9a84c; --gold-light:#e8c97a;
+    --cream:#f8f4ed; --cream2:#f0ead8; --green:#2d7a4f; --green-light:#e8f5ee;
+    --red:#b83232; --red-light:#fdeaea; --grey:#8a8a8a; --white:#ffffff;
+    --shadow:0 4px 24px rgba(13,27,42,0.10);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--navy);min-height:100vh;}
+  .header{background:var(--navy);padding:28px 40px;display:flex;align-items:center;gap:18px;border-bottom:3px solid var(--gold);}
+  .header-logo{width:44px;height:44px;background:var(--gold);border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:var(--navy);}
+  .header h1{font-family:'Playfair Display',serif;font-size:26px;font-weight:700;color:var(--white);}
+  .header h1 span{color:var(--gold-light);}
+  .container{max-width:980px;margin:0 auto;padding:40px 24px 80px;}
+  .card{background:var(--white);border-radius:16px;box-shadow:var(--shadow);padding:32px;margin-bottom:28px;border:1.5px solid var(--cream2);}
+  .card-title{font-family:'Playfair Display',serif;font-size:20px;font-weight:600;color:var(--navy);margin-bottom:20px;padding-bottom:14px;border-bottom:2px solid var(--cream2);display:flex;align-items:center;gap:10px;}
+  .step-badge{background:var(--navy);color:var(--gold);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;border-radius:20px;padding:3px 12px;}
+  label{font-size:14px;font-weight:500;color:var(--navy2);display:block;margin-bottom:6px;}
+  input[type="text"],input[type="date"]{width:100%;padding:12px 16px;border:1.5px solid #d5cfc4;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:15px;color:var(--navy);background:var(--cream);outline:none;transition:border-color 0.2s;}
+  input:focus{border-color:var(--gold);background:var(--white);}
+  .form-row{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+  .test-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+  .test-btn{border:2px solid var(--cream2);background:var(--cream);border-radius:12px;padding:16px 12px;cursor:pointer;text-align:center;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;color:var(--navy2);transition:all 0.2s;}
+  .test-btn:hover{border-color:var(--gold);background:#fdf8ee;}
+  .test-btn.selected{border-color:var(--navy);background:var(--navy);color:var(--white);}
+  .test-icon{font-size:22px;display:block;margin-bottom:6px;}
+  .section-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
+  .section-check{display:flex;align-items:center;gap:12px;border:2px solid var(--cream2);border-radius:10px;padding:14px 16px;cursor:pointer;transition:all 0.2s;user-select:none;}
+  .section-check:hover{border-color:var(--gold);}
+  .section-check.checked{border-color:var(--navy);background:#f0f4f8;}
+  .check-box{width:20px;height:20px;border:2px solid #c0bab0;border-radius:5px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.2s;}
+  .section-check.checked .check-box,.full-checked .check-box{background:var(--navy);border-color:var(--navy);}
+  .check-box svg{display:none;}
+  .section-check.checked .check-box svg,.full-checked .check-box svg{display:block;}
+  .section-label{font-size:14px;font-weight:500;color:var(--navy2);}
+  .section-count{font-size:12px;color:var(--grey);}
+  /* DROPDOWN TABLE */
+  .answer-table-wrap{overflow-x:auto;}
+  .answer-table{width:100%;border-collapse:collapse;font-size:14px;}
+  .answer-table th{background:var(--navy);color:var(--white);font-size:12px;font-weight:600;padding:10px 12px;text-align:left;white-space:nowrap;}
+  .answer-table th:first-child{border-radius:8px 0 0 0;}
+  .answer-table th:last-child{border-radius:0 8px 0 0;}
+  .answer-table td{padding:8px 10px;border-bottom:1px solid var(--cream2);vertical-align:middle;}
+  .answer-table tr:last-child td{border-bottom:none;}
+  .answer-table tr:nth-child(even) td{background:#fafaf7;}
+  .q-num-cell{font-weight:700;color:var(--grey);font-size:13px;width:36px;text-align:center;}
+  .topic-cell{font-size:12px;color:var(--grey);}
+  .ans-select{padding:6px 10px;border:1.5px solid #d0ccc4;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;color:var(--navy);background:var(--white);cursor:pointer;outline:none;transition:all 0.2s;min-width:90px;}
+  .ans-select:focus{border-color:var(--gold);}
+  .ans-select.sel-correct{background:var(--green-light);border-color:var(--green);color:var(--green);}
+  .ans-select.sel-wrong{background:var(--red-light);border-color:var(--red);color:var(--red);}
+  .ans-select.sel-skip{background:#f0f0f0;border-color:#aaa;color:#666;}
+  .result-badge{display:inline-flex;align-items:center;font-size:12px;font-weight:700;padding:3px 10px;border-radius:20px;}
+  .result-badge.correct{background:var(--green-light);color:var(--green);}
+  .result-badge.wrong{background:var(--red-light);color:var(--red);}
+  .result-badge.skip{background:#f0f0f0;color:#888;}
+  .result-badge.none{background:transparent;color:#ccc;}
+  .section-answers{margin-bottom:32px;}
+  .section-answers-title{font-size:16px;font-weight:600;color:var(--navy);margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+  .section-badge{background:var(--cream2);color:var(--navy2);font-size:12px;font-weight:500;padding:3px 10px;border-radius:20px;}
+  .section-divider{border:none;border-top:2px solid var(--cream2);margin:28px 0;}
+  .btn-primary{background:var(--navy);color:var(--white);font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;padding:14px 32px;border:none;border-radius:10px;cursor:pointer;transition:all 0.2s;display:inline-flex;align-items:center;gap:8px;}
+  .btn-primary:hover{background:var(--navy2);transform:translateY(-1px);}
+  .btn-gold{background:var(--gold);color:var(--navy);font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;padding:14px 32px;border:none;border-radius:10px;cursor:pointer;transition:all 0.2s;display:inline-flex;align-items:center;gap:8px;}
+  .btn-gold:hover{background:var(--gold-light);}
+  .btn-outline{background:transparent;color:var(--navy);border:2px solid var(--navy);font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;padding:12px 28px;border-radius:10px;cursor:pointer;transition:all 0.2s;display:inline-flex;align-items:center;gap:8px;}
+  .btn-outline:hover{background:var(--navy);color:white;}
+  .btn-row-end{display:flex;justify-content:flex-end;gap:12px;margin-top:28px;}
+  /* REPORT */
+  #report{display:none;}
+  .report-header{background:var(--navy);border-radius:16px;padding:32px;margin-bottom:24px;color:var(--white);}
+  .report-title{font-family:'Playfair Display',serif;font-size:28px;font-weight:700;color:var(--gold-light);margin-bottom:6px;}
+  .report-sub{font-size:14px;color:#aabbc8;}
+  .report-meta{display:flex;gap:28px;margin-top:18px;flex-wrap:wrap;}
+  .report-meta-item label{font-size:11px;color:#8899aa;text-transform:uppercase;letter-spacing:1px;}
+  .report-meta-item span{font-size:16px;font-weight:600;color:var(--white);display:block;}
+  .score-table{width:100%;border-collapse:collapse;margin-bottom:8px;}
+  .score-table th{background:var(--navy);color:var(--white);font-size:12px;font-weight:600;padding:10px 14px;text-align:left;text-transform:uppercase;letter-spacing:0.5px;}
+  .score-table th:first-child{border-radius:8px 0 0 0;}
+  .score-table th:last-child{border-radius:0 8px 0 0;}
+  .score-table td{padding:10px 14px;border-bottom:1px solid var(--cream2);font-size:14px;}
+  .score-table tr:last-child td{border-bottom:none;}
+  .score-table tr:nth-child(even) td{background:var(--cream);}
+  .correct-mark{color:var(--green);font-weight:700;}
+  .wrong-mark{color:var(--red);font-weight:700;}
+  .skip-mark{color:var(--grey);}
+  .raw-score-row td{background:var(--navy)!important;color:var(--white)!important;font-weight:700;font-size:15px;}
+  .score-summary{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:24px;}
+  .score-pill{background:var(--white);border:2px solid var(--cream2);border-radius:12px;padding:14px 20px;min-width:130px;}
+  .score-pill .pill-label{font-size:11px;color:var(--grey);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:4px;}
+  .score-pill .pill-score{font-family:'Playfair Display',serif;font-size:28px;font-weight:700;color:var(--navy);}
+  .score-pill .pill-detail{font-size:12px;color:var(--grey);}
+  .feedback-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px;}
+  .feedback-box{border-radius:12px;padding:20px;}
+  .feedback-box.good{background:var(--green-light);border:1.5px solid #b5ddc8;}
+  .feedback-box.improve{background:var(--red-light);border:1.5px solid #f0c0c0;}
+  .feedback-box h4{font-size:14px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+  .feedback-box.good h4{color:var(--green);}
+  .feedback-box.improve h4{color:var(--red);}
+  .feedback-box ul{list-style:none;}
+  .feedback-box ul li{font-size:13px;padding:5px 0;border-bottom:1px solid rgba(0,0,0,0.06);color:var(--navy2);}
+  .feedback-box ul li:last-child{border-bottom:none;}
+  .topic-tag{display:inline-block;background:rgba(0,0,0,0.06);border-radius:4px;padding:1px 7px;font-size:11px;font-weight:600;margin-right:4px;}
+  /* AI SECTION */
+  .ai-section{margin-top:24px;border:2px solid var(--gold);border-radius:14px;overflow:hidden;}
+  .ai-section-header{background:linear-gradient(135deg,var(--navy) 0%,#1e3a5a 100%);padding:18px 22px;display:flex;align-items:center;gap:12px;}
+  .ai-section-header h4{font-family:'Playfair Display',serif;font-size:17px;font-weight:600;color:var(--gold-light);}
+  .ai-section-header p{font-size:13px;color:#aabbc8;margin-top:2px;}
+  .ai-icon{font-size:28px;}
+  .ai-body{padding:22px;background:#fefcf8;}
+  .ai-loading{display:flex;align-items:center;gap:12px;color:var(--grey);font-size:14px;padding:12px 0;}
+  .spinner{width:20px;height:20px;border:2.5px solid #ddd;border-top-color:var(--gold);border-radius:50%;animation:spin 0.8s linear infinite;flex-shrink:0;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .ai-topic-block{margin-bottom:22px;}
+  .ai-topic-block:last-child{margin-bottom:0;}
+  .ai-topic-name{font-size:14px;font-weight:700;color:var(--navy);margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+  .ai-topic-name::before{content:'';display:inline-block;width:4px;height:16px;background:var(--gold);border-radius:2px;}
+  .practice-q{background:var(--white);border:1.5px solid var(--cream2);border-radius:10px;padding:14px 16px;margin-bottom:10px;}
+  .practice-q .q-text{font-size:14px;color:var(--navy);margin-bottom:10px;font-weight:500;}
+  .practice-q .q-options{font-size:13px;color:var(--navy2);line-height:1.9;}
+  .practice-q .q-answer{margin-top:10px;padding-top:10px;border-top:1px solid var(--cream2);font-size:13px;color:var(--green);font-weight:600;}
+  .tip-block{background:var(--white);border-left:4px solid var(--gold);border-radius:0 10px 10px 0;padding:12px 16px;margin-bottom:10px;font-size:13px;color:var(--navy2);line-height:1.6;}
+  .show-answer-btn{background:none;border:1px solid var(--green);color:var(--green);font-size:12px;font-weight:600;border-radius:6px;padding:4px 10px;cursor:pointer;margin-top:8px;font-family:'DM Sans',sans-serif;transition:all 0.15s;}
+  .show-answer-btn:hover{background:var(--green);color:white;}
+  .answer-reveal{display:none;margin-top:8px;}
+  .vocab-table{width:100%;border-collapse:collapse;font-size:14px;margin-top:4px;}
+  .vocab-table th{background:var(--navy);color:var(--white);padding:10px 14px;text-align:left;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;}
+  .vocab-table th:first-child{border-radius:8px 0 0 0;}.vocab-table th:last-child{border-radius:0 8px 0 0;}
+  .vocab-table td{padding:10px 14px;border-bottom:1px solid var(--cream2);vertical-align:top;font-size:13px;}
+  .vocab-table tr:nth-child(even) td{background:#fafaf7;}
+  .vocab-word{font-weight:700;color:var(--navy);font-size:14px;}
+  .vocab-syn{color:var(--green);font-weight:600;}
+  .vocab-ex{color:var(--grey);font-style:italic;}
+  .analogy-pill{background:var(--cream2);border-radius:8px;padding:8px 14px;font-size:13px;font-weight:600;color:var(--navy2);display:inline-block;}
+  .topic-tip{background:var(--white);border:1.5px solid var(--cream2);border-radius:10px;padding:14px 16px;margin-bottom:10px;}
+  .topic-tip-name{font-size:14px;font-weight:700;color:var(--navy);margin-bottom:6px;padding-left:12px;border-left:4px solid var(--gold);}
+  .topic-tip-body{font-size:13px;color:var(--navy2);line-height:1.7;margin-top:6px;}
+  .practice-ex{background:var(--cream);border-radius:8px;padding:10px 14px;margin-top:8px;font-size:13px;color:var(--navy2);}
+  .ai-error{color:var(--red);font-size:13px;padding:12px 0;}
+  .hidden{display:none!important;}
+  .note{font-size:12px;color:var(--grey);margin-top:8px;}
+  @media(max-width:640px){.test-grid{grid-template-columns:1fr 1fr;}.feedback-grid{grid-template-columns:1fr;}.form-row{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-logo">S</div>
+  <h1>SSAT <span>Practice Test Grader</span></h1>
+</div>
+
+<div class="container">
+
+  <div class="card" id="step1">
+    <div class="card-title"><span class="step-badge">Step 1</span> Student Information</div>
+    <div class="form-row">
+      <div><label>Student Name</label><input type="text" id="studentName" placeholder="e.g. Jane Smith"></div>
+      <div><label>Date of Completion</label><input type="date" id="dateCompleted"></div>
+    </div>
+  </div>
+
+  <div class="card" id="step2">
+    <div class="card-title"><span class="step-badge">Step 2</span> Select Test</div>
+    <div class="test-grid">
+      <button class="test-btn" onclick="selectTest('I')" id="btn-test-I"><span class="test-icon">📝</span>Practice Test I</button>
+      <button class="test-btn" onclick="selectTest('II')" id="btn-test-II"><span class="test-icon">📝</span>Practice Test II</button>
+      <button class="test-btn" onclick="selectTest('III')" id="btn-test-III"><span class="test-icon">📝</span>Practice Test III<div style="font-size:11px;color:#aaa;margin-top:4px;">(Coming soon)</div></button>
+      <button class="test-btn" onclick="selectTest('IV')" id="btn-test-IV"><span class="test-icon">📝</span>Practice Test IV<div style="font-size:11px;color:#aaa;margin-top:4px;">(Coming soon)</div></button>
+    </div>
+  </div>
+
+  <div class="card hidden" id="step3">
+    <div class="card-title"><span class="step-badge">Step 3</span> Select Sections Completed</div>
+    <p class="note" style="margin-bottom:14px;">Select the sections completed. Selecting all four will automatically check "Full Test."</p>
+    <div class="section-grid" id="sectionGrid"></div>
+    <div style="margin-top:12px;padding:14px 16px;border:2px solid var(--cream2);border-radius:10px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:all 0.2s;" id="fullTestRow" onclick="handleFullTestClick()">
+      <div class="check-box" id="fullTestBox">
+        <svg width="12" height="10" viewBox="0 0 12 10" fill="none"><path d="M1 5L4.5 8.5L11 1.5" stroke="white" stroke-width="2" stroke-linecap="round"/></svg>
+      </div>
+      <div>
+        <div class="section-label" style="font-weight:600;">Select all sections (Full Test)</div>
+        <div class="section-count">Sections 1, 2, 3, and 4</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card hidden" id="step4">
+    <div class="card-title"><span class="step-badge">Step 4</span> Enter Student Answers</div>
+    <p class="note" style="margin-bottom:18px;">Use the dropdown to select each answer. Rows highlight <span style="color:var(--green);font-weight:600;">green</span> for correct, <span style="color:var(--red);font-weight:600;">red</span> for wrong, and grey for skipped.</p>
+    <div id="answersContainer"></div>
+    <div class="btn-row-end"><button class="btn-primary" onclick="generateReport()">📊 Generate Report</button></div>
+  </div>
+
+  <div id="report">
+    <div class="report-header">
+      <div class="report-title">Score Report</div>
+      <div class="report-sub">SSAT Upper Level — Practice Test</div>
+      <div class="report-meta">
+        <div class="report-meta-item"><label>Student</label><span id="rName">—</span></div>
+        <div class="report-meta-item"><label>Date</label><span id="rDate">—</span></div>
+        <div class="report-meta-item"><label>Test</label><span id="rTest">—</span></div>
+      </div>
+    </div>
+    <div id="reportBody"></div>
+    <div class="btn-row-end no-print" style="margin-top:8px;">
+      <button class="btn-outline" onclick="resetAll()">↺ Start Over</button>
+      <button class="btn-gold" onclick="downloadPDF()">⬇ Save as PDF</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const ANSWER_KEYS = {
+  I: {
+    1:{answers:['D','D','C','A','C','C','B','D','E','D','B','E','B','B','A','C','D','B','E','D','D','C','D','E','A'],
+       topics:['Coordinate Geometry','Algebra/Expressions','Geometry (Volume)','Estimation/Approximation','Geometry (Euler Paths)','Statistics (Mean/Average)','Geometry (Perimeter)','Rates/Speed','Algebra (Systems of Equations)','Geometry (Segments/Ratios)','Unit Conversion','Algebra (Equations)','Probability','Set Theory/Venn Diagrams','Algebra (Number Problems)','Algebra (Simplifying Expressions)','Order of Operations','Algebra (Factoring/Quadratics)','Number Properties (Digits)','Geometry (Triangles/Pythagorean)','Percentages','Geometry (Circles/Area)','Ratios/Proportions','Exponents/Radicals','Geometry (3D/Spatial Reasoning)']},
+    2:{answers:['E','E','B','C','A','B','E','B','D','A','D','C','D','A','E','C','E','A','C','B','B','D','C','A','E','C','D','A','E','B','B','D','A','C','E','B','A','D','E','A'],
+       topics:['Author Purpose/Main Idea','Inference','Character Analysis','Author Purpose','Vocabulary in Context','Inference','Literary Devices','Evidence/Supporting Details','Vocabulary in Context','Inference','Author Purpose','Text Structure','Inference','Author Purpose','Author Purpose/Main Idea','Inference','Author Purpose','Vocabulary/Contrast','Tone/Attitude','Vocabulary in Context','Inference','Vocabulary in Context','Tone/Attitude','Author Purpose','Vocabulary in Context','Inference (Poetry)','Literary Devices (Poetry)','Vocabulary in Context (Poetry)','Vocabulary in Context (Poetry)','Inference (Poetry)','Vocabulary in Context','Author Purpose/Qualification','Literary Devices','Tone Comparison','Literary Devices',"Author's Argument",'Metaphor/Figurative Language','Inference (Historical)','Vocabulary in Context','Tone/Attitude']},
+    3:{answers:['B','D','B','C','E','D','A','A','C','B','A','E','D','A','D','C','C','B','D','E','A','E','C','A','B','D','A','B','A','C','D','B','C','C','E','E','B','A','D','E','C','B','D','B','B','C','A','C','A','B','A','D','C','E','D','A','B','C','E','B'],
+       topics:['Synonym (Space/Architecture)','Synonym (Doubt/Uncertainty)','Synonym (Finance/Income)','Synonym (Comfort/Support)','Synonym (Summary)','Synonym (Confirmation)','Synonym (Noise/Chaos)','Synonym (Provoke/Stir)','Synonym (Grandeur)','Synonym (Burden/Encumber)','Synonym (Flamboyant/Showy)','Synonym (Tentative/Provisional)','Synonym (Maze/Confusion)','Synonym (Immature/Callow)','Synonym (Hesitation/Misgiving)','Synonym (Neutral/Impartial)','Synonym (Insight/Acumen)','Synonym (Difficulty/Predicament)','Synonym (Boast/Vaunt)','Synonym (Secret/Covert)','Synonym (Peculiarity/Idiosyncrasy)','Synonym (Violation/Transgression)','Synonym (Expert/Maven)','Synonym (Arrogant/Haughty)','Synonym (Straddle/Bestride)','Synonym (Balance/Equilibrium)','Synonym (Disinclined/Reluctant)','Synonym (Building/Edifice)','Synonym (Ponder/Ruminate)','Synonym (Era/Epoch)','Analogy (Tool:User)','Analogy (Type:Category)','Analogy (Manner:Action)','Analogy (Leader:Subject)','Analogy (Part:Whole)','Analogy (Type:Category)','Analogy (Person:Activity)','Analogy (Command Center:Vehicle)','Analogy (Synonym Relationship)','Analogy (Type:Category)','Analogy (Sense:Organ)','Analogy (Tool:Function)','Analogy (Process:Result)','Analogy (Equipment:Sport)','Analogy (Degree/Scale)','Analogy (Ceremony:Event)','Analogy (Tool:Execute)','Analogy (Antonym Relationship)','Analogy (Cause:Effect)','Analogy (Antonym Relationship)','Analogy (Degree/Extreme)','Analogy (Type:Story Form)','Analogy (Trait:Quality)','Analogy (Cause:Effect)','Analogy (Measure:Attribute)','Analogy (Antonym/Skill)','Analogy (Effective:Purpose)','Analogy (Subtle:Broader)','Analogy (Disposition:Action)','Analogy (Characteristic:Behavior)']},
+    4:{answers:['C','D','B','E','C','B','A','B','B','C','E','A','D','D','D','B','E','A','C','C','E','E','B','C','D'],
+       topics:['Geometry (Area/Rectangle)','Algebra (Equations)','Rates/Word Problems','Inequalities','Geometry (Circles/Circumference)','Sequences/Patterns','Geometry (Angles)','Data Interpretation (Graphs)','Unit Conversion/Word Problems','Percentages','Custom Operations','Geometry (Angles/Intersecting Lines)','Statistics (Mean)','Functions','Number Properties (Odd/Even)','Rates/Word Problems','Algebra (Polynomials)','Statistics (Median)','Coordinate Geometry (Lines/Equations)','Geometry (Volume/Cylinders)','Algebra (Polynomials/Simplify)','Geometry (Transformations/Rotations)','Counting/Combinatorics','Number Theory (Factors)','Coordinate Geometry (Perpendicular Lines)']}
+  },
+  II: {
+    1:{answers:['E','B','D','A','B','C','A','C','E','D','D','A','B','C','E','C','A','D','C','B','D','C','B','C','D'],
+       topics:['Coordinate Geometry','Arithmetic (Operations)','Algebra (Linear Equations)','Exponents','Geometry (Angles/Triangles)','Algebra (Inequalities)','Ratios/Percentages','Set Theory/Venn Diagrams','Custom Operations','Functions/Linear','Geometry (Perimeter)','Statistics (Mean/Average)','Unit Conversion/Estimation','Geometry (Area/Composite)','Algebra (Factoring/Quadratics)','Geometry (Pythagorean Theorem)','Algebra (Quadratic Equations)','Sequences/Patterns','Geometry (3D/Surface Area)','Rates/Word Problems','Coordinate Geometry (Slope)','Geometry (Parallel Lines/Angles)','Exponents/Radicals','Geometry (Circles/Surface Area)','Algebra (Rational Expressions)']},
+    2:{answers:['D','E','D','B','A','A','D','C','C','E','B','D','C','A','E','C','A','E','A','D','B','D','E','B','C','B','D','A','C','E','D','A','E','B','E','E','B','D','C','E'],
+       topics:['Character Analysis','Inference','Vocabulary in Context','Author Purpose','Tone/Attitude','Inference','Evidence/Supporting Details','Evidence/Supporting Details','Vocabulary in Context','Main Idea','Vocabulary in Context','Tone/Attitude','Metaphor/Figurative Language','Tone/Attitude','Vocabulary in Context','Inference','Inference','Evidence/Supporting Details','Tone/Attitude','Literary Devices (Poetry)','Vocabulary in Context','Inference','Vocabulary in Context','Author Purpose/Inference','Tone/Attitude','Inference (Poetry)','Tone (Poetry)','Tone/Attitude','Irony/Reassurance','Inference (Poetry)','Inference','Inference','Inference','Evidence/Supporting Details','Inference','Inference','Evidence/Supporting Details','Inference','Tone/Attitude','Inference (Historical)']},
+    3:{answers:['E','A','D','B','B','C','A','E','C','B','A','B','D','B','A','E','D','C','B','A','B','A','E','C','D','A','D','B','C','A','C','B','A','E','A','D','D','B','A','E','D','A','C','D','B','A','D','B','B','C','E','C','A','A','B','D','D','B','E','C'],
+       topics:['Synonym (Respect/Esteem)','Synonym (Friendly/Amiable)','Synonym (Distasteful/Unsavory)','Synonym (Prophet/Seer)','Synonym (Illustrate/Exemplify)','Synonym (Separate/Detach)','Synonym (Unnecessary/Superfluous)','Synonym (Rogue/Scalawag)','Synonym (Praise/Accolade)','Synonym (Confuse/Bewilder)','Synonym (Inborn/Congenital)','Synonym (Elegant/Exquisite)','Synonym (Stronghold/Bastion)','Synonym (Boldness/Audacity)','Synonym (Hate/Detest)','Synonym (Justification/Rationale)','Synonym (Announcement/Proclamation)','Synonym (Improve/Amend)','Synonym (Attempt/Endeavor)','Synonym (Ghost/Apparition)','Synonym (Crowd/Throng)','Synonym (Pretend/Feign)','Synonym (Chide/Rebuke)','Synonym (Atmosphere/Ambiance)','Synonym (Suppress/Quash)','Synonym (Favorable/Auspicious)','Synonym (Shrink/Dwindle)','Synonym (Split/Cleft)','Synonym (Recuperate/Convalesce)','Synonym (Uproar/Tumult)','Analogy (Type:Smaller)','Analogy (Synonym:Action)','Analogy (Characteristic:Degree)','Analogy (Part:Body System)','Analogy (Adjective:Harm)','Analogy (Confinement:Custody)','Analogy (Survey:Subject)','Analogy (Craft:Material)','Analogy (Characteristic:Action)','Analogy (Degree/Scale)','Analogy (Type:Story)','Analogy (Trait:Quality)','Analogy (Wave:Water)','Analogy (Action:Pride)','Analogy (Made from:Material)','Analogy (Action:Summary)','Analogy (Result:Agreement)','Analogy (Path:Medium)','Analogy (Type:Smaller)','Analogy (Cause:Effect)','Analogy (Person:Quality)','Analogy (Valuable:Type)','Analogy (Opposite:Pure)','Analogy (Cover:Identity)','Analogy (Destroy:Demolition)','Analogy (Opposite:Sensitivity)','Analogy (Lacking:Awareness)','Analogy (Susceptibility:Influence)','Analogy (Support:Approval)','Analogy (Domain:Adjective)']},
+    4:{answers:['C','A','D','B','A','D','C','E','C','B','D','B','E','C','E','C','B','A','B','C','A','A','A','B','D'],
+       topics:['Estimation/Approximation','Algebra (Substitution)','Data Interpretation (Graphs)','Place Value/Number Sense','Coordinate Geometry (Graphing Lines)','Probability','Inequalities','Geometry (Segments/Algebra)','Ratios/Proportions','Coordinate Geometry (Translations)','Algebra (Systems of Equations)','Geometry (Volume/Cubes)','Multiplication/Word Problems','Algebra (Factoring)','Geometry (Triangle Inequality)','Sequences/Arithmetic','Statistics (Median/Mode)','Number Theory (Divisibility)','Geometry (Area/Triangles)','Order of Operations','Counting/Combinatorics','Functions (Composition)','Exponents/Radicals','Geometry (Spatial/Logic)','Geometry (Circles/Arc Length)']}
+  }
+};
+
+
+const SECTION_INFO = {
+  1:{name:'Section 1 (Math)',count:25},
+  2:{name:'Section 2 (Reading Comprehension)',count:40},
+  3:{name:'Section 3 (Verbal)',count:60},
+  4:{name:'Section 4 (Math)',count:25}
+};
+
+let state={test:null,sections:[],answers:{}};
+
+function selectTest(t){
+  if(t==='III'||t==='IV'){alert('Tests III and IV coming soon!');return;}
+  state={test:t,sections:[],answers:{}};
+  document.querySelectorAll('.test-btn').forEach(b=>b.classList.remove('selected'));
+  document.getElementById('btn-test-'+t).classList.add('selected');
+  buildSectionGrid();
+  document.getElementById('step3').classList.remove('hidden');
+  document.getElementById('step4').classList.add('hidden');
+  document.getElementById('report').style.display='none';
+}
+
+function buildSectionGrid(){
+  const grid=document.getElementById('sectionGrid');
+  grid.innerHTML='';
+  setFullTestVisual(false);
+  [1,2,3,4].forEach(s=>{
+    const d=document.createElement('div');
+    d.className='section-check'; d.id='sec-check-'+s;
+    d.onclick=()=>toggleSection(s,d);
+    d.innerHTML=`<div class="check-box"><svg width="12" height="10" viewBox="0 0 12 10" fill="none"><path d="M1 5L4.5 8.5L11 1.5" stroke="white" stroke-width="2" stroke-linecap="round"/></svg></div>
+    <div><div class="section-label">${SECTION_INFO[s].name}</div><div class="section-count">${SECTION_INFO[s].count} questions</div></div>`;
+    grid.appendChild(d);
+  });
+}
+
+function toggleSection(s,el){
+  const idx=state.sections.indexOf(s);
+  if(idx>=0){state.sections.splice(idx,1);el.classList.remove('checked');}
+  else{state.sections.push(s);el.classList.add('checked');}
+  state.sections.sort((a,b)=>a-b);
+  setFullTestVisual(state.sections.length===4);
+  rebuildAnswers();updateStep4();
+}
+
+function handleFullTestClick(){
+  const all=state.sections.length===4;
+  state.sections=all?[]:[1,2,3,4];
+  [1,2,3,4].forEach(s=>{
+    const el=document.getElementById('sec-check-'+s);
+    all?el.classList.remove('checked'):el.classList.add('checked');
+  });
+  setFullTestVisual(!all);
+  rebuildAnswers();updateStep4();
+}
+
+function setFullTestVisual(on){
+  const box=document.getElementById('fullTestBox'),row=document.getElementById('fullTestRow');
+  if(on){box.style.background='var(--navy)';box.style.borderColor='var(--navy)';box.querySelector('svg').style.display='block';row.style.borderColor='var(--navy)';row.style.background='#f0f4f8';}
+  else{box.style.background='';box.style.borderColor='#c0bab0';box.querySelector('svg').style.display='none';row.style.borderColor='var(--cream2)';row.style.background='';}
+}
+
+function updateStep4(){
+  if(state.sections.length>0){buildAnswerInputs();document.getElementById('step4').classList.remove('hidden');}
+  else document.getElementById('step4').classList.add('hidden');
+}
+
+function rebuildAnswers(){
+  Object.keys(state.answers).forEach(s=>{if(!state.sections.includes(parseInt(s)))delete state.answers[s];});
+  state.sections.forEach(s=>{
+    if(!state.answers[s]){state.answers[s]={};for(let q=1;q<=SECTION_INFO[s].count;q++)state.answers[s][q]=null;}
+  });
+}
+
+function buildAnswerInputs(){
+  rebuildAnswers();
+  const container=document.getElementById('answersContainer');
+  container.innerHTML='';
+  state.sections.forEach((s,idx)=>{
+    const key=ANSWER_KEYS[state.test][s],count=SECTION_INFO[s].count;
+    const div=document.createElement('div');
+    div.className='section-answers';
+    let rows='';
+    for(let q=1;q<=count;q++){
+      const correctAns=key.answers[q-1],topic=key.topics[q-1];
+      rows+=`<tr id="row-${s}-${q}">
+        <td class="q-num-cell">${q}</td>
+        <td><select class="ans-select" id="sel-${s}-${q}" onchange="handleSelect(${s},${q},'${correctAns}',this)">
+          <option value="">— Select —</option>
+          <option value="A">A</option><option value="B">B</option><option value="C">C</option>
+          <option value="D">D</option><option value="E">E</option><option value="--">Skip (—)</option>
+        </select></td>
+        <td style="font-weight:600;color:var(--navy2);">${correctAns}</td>
+        <td><span class="result-badge none" id="badge-${s}-${q}">—</span></td>
+        <td class="topic-cell">${topic}</td>
+      </tr>`;
+    }
+    div.innerHTML=`<div class="section-answers-title">${SECTION_INFO[s].name}<span class="section-badge">${count} questions</span></div>
+    <div class="answer-table-wrap"><table class="answer-table">
+      <thead><tr><th>#</th><th>Your Answer</th><th>Correct Answer</th><th>Result</th><th>Topic</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>`;
+    if(idx<state.sections.length-1)div.innerHTML+='<hr class="section-divider">';
+    container.appendChild(div);
+    for(let q=1;q<=count;q++){
+      if(state.answers[s][q]){const sel=document.getElementById(`sel-${s}-${q}`);if(sel){sel.value=state.answers[s][q];handleSelect(s,q,key.answers[q-1],sel);}}
+    }
+  });
+}
+
+function handleSelect(section,q,correctAns,sel){
+  const val=sel.value;
+  state.answers[section][q]=val||null;
+  const badge=document.getElementById(`badge-${section}-${q}`);
+  sel.className='ans-select';
+  if(!val){badge.className='result-badge none';badge.textContent='—';}
+  else if(val==='--'){sel.classList.add('sel-skip');badge.className='result-badge skip';badge.textContent='Skipped';}
+  else if(val===correctAns){sel.classList.add('sel-correct');badge.className='result-badge correct';badge.textContent='✓ Correct';}
+  else{sel.classList.add('sel-wrong');badge.className='result-badge wrong';badge.textContent='✗ Wrong';}
+}
+
+function generateReport(){
+  const name=document.getElementById('studentName').value.trim()||'Student';
+  const dateVal=document.getElementById('dateCompleted').value;
+  const dateStr=dateVal?new Date(dateVal+'T12:00:00').toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'}):'Not specified';
+  document.getElementById('rName').textContent=name;
+  document.getElementById('rDate').textContent=dateStr;
+  document.getElementById('rTest').textContent='Practice Test '+state.test;
+
+  const body=document.getElementById('reportBody');
+  body.innerHTML='';
+
+  state.sections.forEach(s=>{
+    const key=ANSWER_KEYS[state.test][s],count=SECTION_INFO[s].count;
+    const div=document.createElement('div');
+    div.className='card';
+    let correct=0,wrong=0,skipped=0,tableRows='';
+    let goodTopics={},weakTopics={};
+
+    for(let q=1;q<=count;q++){
+      const correctAns=key.answers[q-1],topic=key.topics[q-1];
+      const student=state.answers[s]?state.answers[s][q]:null;
+      let mark,score;
+      if(!student){mark='<span class="skip-mark">—</span>';score='<span class="skip-mark">—</span>';skipped++;if(!weakTopics[topic])weakTopics[topic]=[];weakTopics[topic].push(q);}
+      else if(student==='--'){mark='<span class="skip-mark">— skipped</span>';score='<span class="skip-mark">—</span>';skipped++;if(!weakTopics[topic])weakTopics[topic]=[];weakTopics[topic].push(q);}
+      else if(student===correctAns){mark='<span class="correct-mark">✓</span>';score='<span class="correct-mark">+1</span>';correct++;if(!goodTopics[topic])goodTopics[topic]=[];goodTopics[topic].push(q);}
+      else{mark=`<span class="wrong-mark">✗ (${student})</span>`;score='<span class="wrong-mark">−0.25</span>';wrong++;if(!weakTopics[topic])weakTopics[topic]=[];weakTopics[topic].push(q);}
+      tableRows+=`<tr><td>${q}</td><td>${student&&student!=='--'?student:'—'}</td><td>${correctAns}</td><td>${mark}</td><td style="font-size:12px;color:var(--grey)">${topic}</td><td>${score}</td></tr>`;
+    }
+
+    const rawScore=Math.round((correct-wrong*0.25)*100)/100;
+    const goodKeys=Object.keys(goodTopics),weakKeys=Object.keys(weakTopics);
+    const goodHTML=goodKeys.length?goodKeys.map(t=>`<li><span class="topic-tag">Q${goodTopics[t].join(', Q')}</span> ${t}</li>`).join(''):'<li>Keep practicing — you\'ll get there!</li>';
+    const weakHTML=weakKeys.length?weakKeys.map(t=>`<li><span class="topic-tag">Q${weakTopics[t].join(', Q')}</span> ${t}</li>`).join(''):'<li>No major weak areas — great job!</li>';
+    const uniqueWeak=weakKeys.slice(0,6);
+    const aiId=`ai-body-${s}`;
+    const isVerbalSection=(s===3);
+
+    // For Section 3: collect wrong question numbers
+    let wrongQNums=[];
+    if(isVerbalSection){
+      wrongQNums=[...new Set(Object.values(weakTopics).flat())].sort((a,b)=>a-b).slice(0,20);
+    }
+
+    const showAI=isVerbalSection?wrongQNums.length>0:uniqueWeak.length>0;
+    const aiIcon=isVerbalSection?'📖':'🤖';
+    const aiTitle=isVerbalSection?'Vocabulary Review List':'📚 Strategy Tips &amp; Study Guide';
+    const aiSub=isVerbalSection?'Definitions and synonyms for every word you missed':'Targeted tips for the topics you got wrong';
+    const aiLoading=isVerbalSection?'Loading vocabulary list…':'Loading strategy tips…';
+
+    div.innerHTML=`
+      <div class="card-title">${SECTION_INFO[s].name}</div>
+      <div class="score-summary">
+        <div class="score-pill"><div class="pill-label">Raw Score</div><div class="pill-score">${rawScore}</div><div class="pill-detail">out of ${count}</div></div>
+        <div class="score-pill"><div class="pill-label">Correct</div><div class="pill-score" style="color:var(--green)">${correct}</div><div class="pill-detail">+${correct} pts</div></div>
+        <div class="score-pill"><div class="pill-label">Wrong</div><div class="pill-score" style="color:var(--red)">${wrong}</div><div class="pill-detail">−${(wrong*0.25).toFixed(2)} pts</div></div>
+        <div class="score-pill"><div class="pill-label">Skipped</div><div class="pill-score" style="color:var(--grey)">${skipped}</div><div class="pill-detail">no penalty</div></div>
+      </div>
+      <div style="overflow-x:auto;"><table class="score-table">
+        <thead><tr><th>#</th><th>Your Answer</th><th>Correct Answer</th><th>Result</th><th>Topic</th><th>Score</th></tr></thead>
+        <tbody>${tableRows}<tr class="raw-score-row"><td colspan="5">Raw Score</td><td>${rawScore}</td></tr></tbody>
+      </table></div>
+      <div style="margin-top:24px;">
+        <div style="font-family:'Playfair Display',serif;font-size:17px;font-weight:600;color:var(--navy);margin-bottom:12px;">Performance Analysis</div>
+        <div class="feedback-grid">
+          <div class="feedback-box good"><h4>✅ What You Did Well</h4><ul>${goodHTML}</ul></div>
+          <div class="feedback-box improve"><h4>📌 What to Work On</h4><ul>${weakHTML}</ul></div>
+        </div>
+      </div>
+      ${showAI?`<div class="ai-section">
+        <div class="ai-section-header"><div class="ai-icon">${aiIcon}</div>
+          <div><h4>${aiTitle}</h4><p>${aiSub}</p></div>
+        </div>
+        <div class="ai-body" id="${aiId}"><div class="ai-loading"><div class="spinner"></div> ${aiLoading}</div></div>
+      </div>`:''}`;
+
+    body.appendChild(div);
+    if(isVerbalSection&&wrongQNums.length>0) renderVocabList(aiId,wrongQNums,state.test);
+    else if(!isVerbalSection&&uniqueWeak.length>0) renderTopicTips(aiId,uniqueWeak);
+  });
+
+  document.getElementById('report').style.display='block';
+  document.getElementById('report').scrollIntoView({behavior:'smooth'});
+}
+
+
+// ── OFFLINE VOCAB DATA ────────────────────────────────────────────────────
+const VOCAB_DATA = {
+  I: {
+    1:{w:'TERRACE',d:'A raised flat outdoor area or patio connected to a building.',s:'patio, veranda',e:'"They dined on the terrace overlooking the garden."'},
+    2:{w:'DUBIOUS',d:'Hesitant or doubtful; of questionable quality.',s:'doubtful, uncertain',e:'"She gave a dubious look at his excuse."'},
+    3:{w:'REVENUE',d:'Income, especially that of a company or government.',s:'income, earnings',e:'"The new tax increased the city\'s revenue."'},
+    4:{w:'CONSOLE',d:'To comfort someone in grief or distress.',s:'comfort, soothe',e:'"She tried to console her friend after the loss."'},
+    5:{w:'SYNOPSIS',d:'A brief summary or overview of a longer work.',s:'summary, overview',e:'"Write a one-page synopsis of the novel."'},
+    6:{w:'CORROBORATE',d:'To confirm or support with evidence.',s:'confirm, verify',e:'"The witness could corroborate the alibi."'},
+    7:{w:'HUBBUB',d:'A noisy commotion or uproar.',s:'uproar, commotion',e:'"The hubbub in the cafeteria was deafening."'},
+    8:{w:'INSTIGATE',d:'To bring about or provoke an action.',s:'provoke, incite',e:'"He did not want to instigate a conflict."'},
+    9:{w:'SUBLIME',d:'Of supreme excellence, grandeur, or beauty.',s:'magnificent, majestic',e:'"The mountain view was absolutely sublime."'},
+    10:{w:'ENCUMBER',d:'To weigh down or burden; to restrict movement.',s:'burden, hamper',e:'"Heavy gear can encumber a hiker."'},
+    11:{w:'FLAMBOYANT',d:'Strikingly bold and showy; tending to attract attention.',s:'showy, extravagant',e:'"Her flamboyant outfit stood out in the crowd."'},
+    12:{w:'TENTATIVE',d:'Not certain or fixed; done with caution or hesitation.',s:'provisional, hesitant',e:'"We made a tentative plan to meet Saturday."'},
+    13:{w:'LABYRINTH',d:'A complicated network of passages; a maze.',s:'maze, network',e:'"The underground labyrinth confused even the guide."'},
+    14:{w:'CALLOW',d:'Inexperienced and immature; lacking adult sophistication.',s:'immature, naive',e:'"The callow intern made avoidable mistakes."'},
+    15:{w:'QUALM',d:'An uneasy feeling of doubt or scruple; a misgiving.',s:'misgiving, doubt',e:'"She had no qualms about speaking her mind."'},
+    16:{w:'IMPARTIAL',d:'Treating all sides equally; fair and unbiased.',s:'neutral, unbiased',e:'"A good judge must be completely impartial."'},
+    17:{w:'ACUMEN',d:'The ability to make good judgments quickly; sharpness.',s:'insight, shrewdness',e:'"Her business acumen doubled the company\'s profits."'},
+    18:{w:'PREDICAMENT',d:'A difficult or embarrassing situation.',s:'dilemma, quandary',e:'"He was in a predicament when he lost his keys."'},
+    19:{w:'VAUNT',d:'To boast about or praise excessively.',s:'boast, brag',e:'"He loved to vaunt his achievements."'},
+    20:{w:'COVERT',d:'Not openly acknowledged; secret or hidden.',s:'secret, concealed',e:'"The spies conducted a covert operation."'},
+    21:{w:'IDIOSYNCRASY',d:'A distinctive or peculiar feature or habit of a person.',s:'peculiarity, quirk',e:'"Tapping her pen was one of her idiosyncrasies."'},
+    22:{w:'TRANSGRESSION',d:'An act that goes against a rule or law; a violation.',s:'violation, offense',e:'"The transgression resulted in detention."'},
+    23:{w:'MAVEN',d:'An expert or connoisseur in a particular field.',s:'expert, authority',e:'"She is a maven when it comes to literature."'},
+    24:{w:'HAUGHTY',d:'Arrogantly superior and disdainful toward others.',s:'arrogant, disdainful',e:'"The haughty student refused to work with peers."'},
+    25:{w:'BESTRIDE',d:'To stand or sit with one leg on each side; to straddle.',s:'straddle, span',e:'"The statue seemed to bestride the entire plaza."'},
+    26:{w:'EQUILIBRIUM',d:'A state of physical or mental balance and stability.',s:'balance, stability',e:'"The gymnast maintained her equilibrium on the beam."'},
+    27:{w:'RELUCTANT',d:'Unwilling and hesitant; disinclined.',s:'hesitant, unwilling',e:'"He was reluctant to admit his mistake."'},
+    28:{w:'EDIFICE',d:'A large, imposing building.',s:'structure, building',e:'"The ancient edifice had stood for a thousand years."'},
+    29:{w:'RUMINATE',d:'To think deeply about something; to meditate or ponder.',s:'ponder, contemplate',e:'"She sat quietly to ruminate on the advice given."'},
+    30:{w:'EPOCH',d:'A period of time marked by notable events; an era.',s:'era, age',e:'"The internet marked a new epoch in communication."'}
+  },
+  II: {
+    1:{w:'ESTEEM',d:'Respect and admiration; to regard highly.',s:'respect, admiration',e:'"The students held their teacher in high esteem."'},
+    2:{w:'AMIABLE',d:'Having a pleasant, friendly, and agreeable manner.',s:'friendly, pleasant',e:'"Her amiable nature made her easy to talk to."'},
+    3:{w:'UNSAVORY',d:'Disagreeable and unpleasant; morally offensive.',s:'distasteful, offensive',e:'"The unsavory details shocked everyone."'},
+    4:{w:'SEER',d:'A prophet; a person who sees visions of the future.',s:'prophet, visionary',e:'"The ancient seer predicted the fall of the empire."'},
+    5:{w:'EXEMPLIFY',d:'To serve as a typical example of; to illustrate.',s:'illustrate, represent',e:'"Her dedication exemplifies true leadership."'},
+    6:{w:'DETACH',d:'To separate or unfasten and remove; to disengage.',s:'separate, disconnect',e:'"Detach the coupon before going to the store."'},
+    7:{w:'SUPERFLUOUS',d:'Unnecessary, especially through being more than enough.',s:'unnecessary, excessive',e:'"The editor removed superfluous words."'},
+    8:{w:'SCALAWAG',d:'A person who behaves badly but in a likable way; a rascal.',s:'rogue, rascal',e:'"The playful puppy was a little scalawag."'},
+    9:{w:'ACCOLADE',d:'An award or praise given as a special honor.',s:'praise, honor',e:'"She received accolades for her performance."'},
+    10:{w:'BEWILDER',d:'To cause someone to become perplexed and confused.',s:'confuse, perplex',e:'"The complex instructions bewildered the employee."'},
+    11:{w:'CONGENITAL',d:'Present from birth; innate rather than acquired.',s:'inborn, innate',e:'"His congenital love of music was evident early."'},
+    12:{w:'EXQUISITE',d:'Extremely beautiful and delicate; highly refined.',s:'elegant, refined',e:'"The jeweler created an exquisite necklace."'},
+    13:{w:'BASTION',d:'A stronghold; a person or thing defending a principle.',s:'stronghold, fortress',e:'"The library became a bastion of free thought."'},
+    14:{w:'AUDACITY',d:'A willingness to take bold risks; nerve or cheek.',s:'boldness, daring',e:'"It took audacity to challenge the policy."'},
+    15:{w:'DETEST',d:'To dislike intensely; to hate.',s:'hate, loathe',e:'"She detested the smell of burnt popcorn."'},
+    16:{w:'RATIONALE',d:'A set of reasons or logical basis for an action.',s:'justification, reasoning',e:'"The teacher explained the rationale for the policy."'},
+    17:{w:'PROCLAMATION',d:'A public or official announcement; a declaration.',s:'announcement, declaration',e:'"The mayor issued a proclamation honoring the team."'},
+    18:{w:'AMEND',d:'To make changes in order to improve; to alter officially.',s:'revise, improve',e:'"Congress voted to amend the existing law."'},
+    19:{w:'ENDEAVOR',d:'An earnest attempt to achieve a goal.',s:'attempt, effort',e:'"Her endeavor to learn three languages was impressive."'},
+    20:{w:'APPARITION',d:'A ghost or ghostlike image; a remarkable sight.',s:'ghost, phantom',e:'"The mansion was said to be haunted by an apparition."'},
+    21:{w:'THRONG',d:'A large, densely packed crowd of people.',s:'crowd, multitude',e:'"A throng of fans gathered outside the stadium."'},
+    22:{w:'FEIGN',d:'To pretend to feel or be affected by something.',s:'pretend, fake',e:'"He tried to feign surprise at the party."'},
+    23:{w:'REBUKE',d:'To express sharp disapproval or criticism; to reprimand.',s:'reprimand, scold',e:'"The coach rebuked the player for breaking the rules."'},
+    24:{w:'AMBIANCE',d:'The character and atmosphere of a place.',s:'atmosphere, mood',e:'"The candlelight created a romantic ambiance."'},
+    25:{w:'QUASH',d:'To suppress or put an end to; to annul officially.',s:'suppress, squash',e:'"The judge quashed the ruling after new evidence."'},
+    26:{w:'AUSPICIOUS',d:'Giving a sign of future success; favorable.',s:'favorable, promising',e:'"Sunny weather seemed an auspicious start to the trip."'},
+    27:{w:'DWINDLE',d:'To diminish gradually in size, amount, or strength.',s:'diminish, decrease',e:'"Their enthusiasm began to dwindle after the long hike."'},
+    28:{w:'CLEFT',d:'A fissure or split, especially in rock; divided.',s:'split, crack',e:'"Water trickled through the cleft in the rock."'},
+    29:{w:'CONVALESCE',d:'To recover one\'s health and strength after illness.',s:'recover, recuperate',e:'"She went home to convalesce after surgery."'},
+    30:{w:'TUMULT',d:'A loud, confused noise from a large crowd; uproar.',s:'uproar, commotion',e:'"The tumult of the crowd could be heard for blocks."'}
+  }
+};
+
+// ── ANALOGY PAIRS for Section 3 Q31-60 ──────────────────────────────────
+const ANALOGY_DATA = {
+  I: {
+    31:{pair:'Barber ↔ Scissors',rel:'Person : Their characteristic tool'},
+    32:{pair:'Theft ↔ Crime',rel:'Specific example : Its broader category'},
+    33:{pair:'Swagger ↔ Walk',rel:'Manner : The action it describes'},
+    34:{pair:'General ↔ Soldier',rel:'Leader : Their subordinate'},
+    35:{pair:'Shell ↔ Egg',rel:'Outer covering : What it covers'},
+    36:{pair:'Novel ↔ Fictional',rel:'Type of writing : Its defining characteristic'},
+    37:{pair:'Wayfarer ↔ Travel',rel:'Person : The activity they do'},
+    38:{pair:'Bridge ↔ Ship',rel:'Command center : Its vehicle'},
+    39:{pair:'Criticize ↔ Castigate',rel:'Mild : Intense version of the same action'},
+    40:{pair:'Peddler ↔ Merchant',rel:'Specific : General category'},
+    41:{pair:'Visual ↔ Sight',rel:'Adjective : The sense it describes'},
+    42:{pair:'Shovel ↔ Dig',rel:'Tool : Its primary function'},
+    43:{pair:'Capture ↔ Custody',rel:'Action : Its resulting state'},
+    44:{pair:'Barbell ↔ Lift',rel:'Equipment : The activity it enables'},
+    45:{pair:'Measure ↔ Size',rel:'Action : What it determines'},
+    46:{pair:'Wedding ↔ Marriage',rel:'Ceremony : The state it initiates'},
+    47:{pair:'Implement ↔ Plan',rel:'To execute : What is being executed'},
+    48:{pair:'Secure ↔ Danger',rel:'Adjective : The threat it is free from'},
+    49:{pair:'Alibi ↔ Exonerate',rel:'Evidence : Its purpose'},
+    50:{pair:'Idle ↔ Work',rel:'Antonym pair (absence : activity)'},
+    51:{pair:'Debacle ↔ Failure',rel:'Extreme degree : The quality it intensifies'},
+    52:{pair:'Saga ↔ Story',rel:'Specific type : General category'},
+    53:{pair:'Faithful ↔ Loyalty',rel:'Adjective : The quality it expresses'},
+    54:{pair:'Bother ↔ Annoyance',rel:'Action : The feeling it causes'},
+    55:{pair:'Altitude ↔ High',rel:'Measure : The dimension it describes'},
+    56:{pair:'Inept ↔ Skill',rel:'Adjective meaning lacking : The missing quality'},
+    57:{pair:'Cogent ↔ Convince',rel:'Effective adjective : Its purpose'},
+    58:{pair:'Nuance ↔ Distinction',rel:'Subtle version : Its broader category'},
+    59:{pair:'Taciturn ↔ Speak',rel:'Reluctant adjective : The action avoided'},
+    60:{pair:'Furtive ↔ Stealth',rel:'Characteristic : The manner it involves'}
+  },
+  II: {
+    31:{pair:'Fib ↔ Deception',rel:'Mild, small : The broader category'},
+    32:{pair:'Watch ↔ See',rel:'Intentional, sustained : General version'},
+    33:{pair:'Facilitate ↔ Easy',rel:'Verb : The adjective result it produces'},
+    34:{pair:'Femur ↔ Bone',rel:'Specific example : Its broader category'},
+    35:{pair:'Detrimental ↔ Harm',rel:'Adjective : The noun it causes'},
+    36:{pair:'Imprison ↔ Custody',rel:'Action : Its resulting state'},
+    37:{pair:'Census ↔ Population',rel:'Survey or count : What it measures'},
+    38:{pair:'Textile ↔ Weave',rel:'Product : The process that creates it'},
+    39:{pair:'Inquisitive ↔ Ask',rel:'Adjective : The action it leads to'},
+    40:{pair:'Minuscule ↔ Small',rel:'Extreme degree : The quality it intensifies'},
+    41:{pair:'Legend ↔ Story',rel:'Specific type : General category'},
+    42:{pair:'Prowess ↔ Skillful',rel:'Noun : The adjective it corresponds to'},
+    43:{pair:'Ripple ↔ Wave',rel:'Small version : Larger version of the same thing'},
+    44:{pair:'Boast ↔ Pride',rel:'Action : The feeling that drives it'},
+    45:{pair:'Tapestry ↔ Thread',rel:'Product : Its raw material'},
+    46:{pair:'Summarize ↔ Synopsis',rel:'Action : Its result'},
+    47:{pair:'Consensus ↔ Agree',rel:'Result : The action that produces it'},
+    48:{pair:'Trajectory ↔ Air',rel:'Path : The medium it moves through'},
+    49:{pair:'Cottage ↔ House',rel:'Small specific type : General category'},
+    50:{pair:'Lull ↔ Sleep',rel:'Action : What it leads toward'},
+    51:{pair:'Hermit ↔ Reclusive',rel:'Person : The adjective that describes them'},
+    52:{pair:'Asset ↔ Valuable',rel:'Noun : The adjective that describes it'},
+    53:{pair:'Pure ↔ Adulterate',rel:'Adjective : The verb that destroys it'},
+    54:{pair:'Disguise ↔ Identity',rel:'What hides : What is hidden'},
+    55:{pair:'Raze ↔ Demolition',rel:'Action : Its resulting noun'},
+    56:{pair:'Callous ↔ Sensitive',rel:'Antonym pair'},
+    57:{pair:'Oblivious ↔ Awareness',rel:'Adjective : The quality it lacks'},
+    58:{pair:'Suggestible ↔ Influence',rel:'Susceptibility adjective : What it yields to'},
+    59:{pair:'Endorse ↔ Approval',rel:'Action : The state it expresses'},
+    60:{pair:'Celestial ↔ Heaven',rel:'Adjective : The domain it belongs to'}
+  }
+};
+
+// ── OFFLINE MATH/READING TIPS ─────────────────────────────────────────────
+const TOPIC_TIPS = {
+  // MATH topics
+  'Coordinate Geometry':       {tip:'Plot points as (x,y). Remember: x is horizontal, y is vertical. Slope = rise/run = (y2-y1)/(x2-x1).',ex:'For "which point has coordinates (2,−3)?", count 2 right and 3 down from the origin.'},
+  'Algebra/Expressions':       {tip:'Combine like terms first. With variables, substitute a simple number (like 1 or 2) to test which answer choice matches.',ex:'For expressions like 7k − 4k, just combine: 3k.'},
+  'Algebra (Expressions)':     {tip:'Combine like terms first. With variables, substitute a simple number (like 1 or 2) to test which answer choice matches.',ex:'For expressions like 7k − 4k, just combine: 3k.'},
+  'Geometry (Volume)':         {tip:'Volume of rectangular prism = l × w × h. Always multiply all three dimensions and check which answer matches.',ex:'8×9×4 = 288 cubic meters. Work backwards from the answer choices!'},
+  'Estimation/Approximation':  {tip:'Round numbers to the nearest friendly value before calculating. This is faster and avoids errors.',ex:'87,412 ÷ 3,024 ≈ 87,000 ÷ 3,000 = 29 ≈ 30.'},
+  'Estimation':                {tip:'Round numbers to the nearest friendly value before calculating.',ex:'1.998 × 2,001 ≈ 2 × 2,000 = 4,000.'},
+  'Geometry (Euler Paths)':    {tip:'A figure can be drawn without lifting your pencil if it has 0 or 2 vertices with an odd number of lines meeting at them.',ex:'A triangle has all even-degree vertices — it can be traced without lifting.'},
+  'Statistics (Mean/Average)': {tip:'Mean = sum of all values ÷ number of values. Work backwards: if you know the mean, multiply by count to get the total sum.',ex:'If the mean of 4 numbers is 5, their sum must be 20.'},
+  'Statistics (Mean)':         {tip:'Mean = sum ÷ count. Work backwards: total = mean × count.',ex:'Mean height of 4 girls is 4.9 ft → total = 19.6 ft.'},
+  'Geometry (Perimeter)':      {tip:'Perimeter = sum of all sides. For squares: P = 4s. For a square with side 8x and P=640: 4(8x)=640, so 32x=640, x=20.',ex:'P = 4 × side. If P = 640 and side = 8x, then x = 20.'},
+  'Rates/Speed':               {tip:'Use Distance = Rate × Time (D=RT). If given a range of times, divide the distance by each time to find the range of speeds.',ex:'350 miles ÷ 6 hours = 58.3 mph; 350 ÷ 5.5 = 63.6 mph → between 58 and 64.'},
+  'Rates & Speed':             {tip:'Use Distance = Rate × Time (D=RT). Divide distance by time to find speed.',ex:'350 miles ÷ 6 hours ≈ 58 mph.'},
+  'Algebra (Systems)':         {tip:'With two equations, use substitution: solve one equation for one variable, then plug into the other.',ex:'r+s=13 and 2t+s=13 → subtract: 2t−r=0, so if r=t, plug back in to solve.'},
+  'Algebra (Systems of Equations)':{tip:'Subtract one equation from the other to eliminate a variable, then solve.',ex:'r+s=13 and 2t+s=13 → subtracting gives 2t−r=0.'},
+  'Geometry (Segments/Ratios)':{tip:'If a segment is divided into parts with a ratio, set up algebra. Label unknown as n, write each part in terms of n, then sum = total.',ex:'Segments 2n and 3n summing to 45 → 5n=45 → n=9 → RQ = 3n = 27.'},
+  'Geometry (Segments)':       {tip:'Label unknowns as multiples of a variable. Set up an equation: sum of parts = total length.',ex:'If segments are b, 2b, and 5b, total = 8b. If total = 16, then b = 2.'},
+  'Unit Conversion':           {tip:'Always set up a conversion fraction so units cancel. Write what you have, multiply by (new unit / old unit).',ex:'31 mg × 250 = 7,750 mg ÷ 1,000 = 7.75 grams.'},
+  'Unit Conversion/Word Problems':{tip:'Convert units carefully. Set up the equation: mg per staple × number of staples, then convert mg to grams (÷1000).',ex:'31 mg × 250 = 7,750 mg = 7.75 g.'},
+  'Algebra (Equations)':       {tip:'Isolate the variable by doing the same operation to both sides. Cross-multiply for fractions.',ex:'(x+1)/(x−1)=3 → x+1=3(x−1) → x+1=3x−3 → 2=2x → x=2. (But check: x=2 means denom≠0 ✓)'},
+  'Probability':               {tip:'Probability = (favorable outcomes) ÷ (total possible outcomes). List or count carefully.',ex:'Integers between 1 and 12 (exclusive): 2,3,4,5,6,7,8,9,10,11 — that\'s 10 total.'},
+  'Set Theory/Venn Diagrams':  {tip:'Use the formula: Total = Group A + Group B − Both. Draw a Venn diagram to visualize.',ex:'500 = 300 + 300 − Both → Both = 100.'},
+  'Set Theory':                {tip:'Venn diagram intersection = multiples of BOTH numbers. E.g., multiples of both 3 and 4 = multiples of 12.',ex:'The shaded overlap region contains numbers divisible by both 3 and 4, like 12, 24, 36.'},
+  'Algebra (Number Problems)': {tip:'Translate word problems directly into equations. "Two numbers whose difference is 8 and sum is 50": x−y=8, x+y=50.',ex:'Add the equations: 2x=58 → x=29, y=21.'},
+  'Algebra (Word Problems)':   {tip:'Translate words directly to equations step by step.',ex:'"Two numbers with difference 8, sum 50" → x+y=50, x−y=8 → solve simultaneously.'},
+  'Algebra (Simplifying)':     {tip:'Factor out common terms. Cancel matching factors in numerator and denominator.',ex:'15g²v³z ÷ 35gv²z = (15/35) × g × v = (3/7)gv.'},
+  'Algebra (Simplifying Expressions)':{tip:'Factor out common terms and cancel.',ex:'15g²v³z ÷ 35gv²z = 3gv/7.'},
+  'Order of Operations':       {tip:'Follow PEMDAS: Parentheses, Exponents, Multiplication/Division (left to right), Addition/Subtraction (left to right).',ex:'20 − 15÷5 + 4×3 + 12 = 20 − 3 + 12 + 12 = 41.'},
+  'Algebra (Factoring/Quadratics)':{tip:'Factor quadratics by finding two numbers that multiply to c and add to b in ax²+bx+c. Or use the quadratic formula.',ex:'(x+5)(x−1)=0 → x=−5 or x=1.'},
+  'Algebra (Quadratics)':      {tip:'Set the equation = 0, then factor or use the quadratic formula.',ex:'x²+5x=6 → x²+5x−6=0 → (x+6)(x−1)=0 → x=−6 or x=1.'},
+  'Number Properties (Digits)':{tip:'Think about what digit sums and carries are possible. Try specific digit values to test which answer choices work.',ex:'In ABC + DBC = 850, the units column C+C=0 (with possible carry), so C=0 or C=5.'},
+  'Number Properties':         {tip:'Think about what makes a number odd or even. Odd + Odd = Even; Odd × Even = Even; Odd × Odd = Odd.',ex:'If n is odd, then n+2 is also odd (odd + even = odd).'},
+  'Number Properties (Odd/Even)':{tip:'Odd+Odd=Even, Even+Even=Even, Odd+Even=Odd. Odd×anything: odd×odd=odd, odd×even=even.',ex:'If n is odd: n+2 is odd, n+3 is even.'},
+  'Geometry (Triangles/Pythagorean)':{tip:'For a right triangle, use a²+b²=c². For isosceles right triangles, the hypotenuse = leg × √2.',ex:'Leg=2 → hypotenuse = 2√2.'},
+  'Geometry (Pythagorean Theorem)':{tip:'a²+b²=c². For common triples: 3-4-5, 5-12-13, 8-15-17, and multiples thereof.',ex:'Legs 12 and 16 → 12²+16²=144+256=400 → c=20.'},
+  'Percentages':               {tip:'Percent means "per hundred." For successive percents, don\'t add them — multiply. 80% of 80% = 0.8 × 0.8 = 0.64 = 64%.',ex:'Selling 20%, then 20% of remainder: 0.8 × 0.8 = 0.64 → 64% remains.'},
+  'Geometry (Circles/Area)':   {tip:'Area of circle = πr². For sectors, area = (angle/360) × πr². The radius equals half the diameter.',ex:'Area of triangle ACB = 8; radius = half the hypotenuse of the right triangle at center.'},
+  'Geometry (Circles)':        {tip:'Circumference = πd = 2πr. Area = πr². Arc length = (angle/360) × 2πr.',ex:'Diameter=24 → C = 24π.'},
+  'Ratios/Proportions':        {tip:'Set up a proportion: a/b = c/d. Cross-multiply to solve. For ratio problems, let values be kx and ky.',ex:'Heights in ratio 5:2. Let them be 5k and 2k. After changes, new ratio is 3:1 — solve for k.'},
+  'Ratios & Proportions':      {tip:'Let ratio parts be multiples of a variable (e.g., 5k and 2k). Set up an equation after the change.',ex:'"2.5 gallons red : 1.5 gallons blue = 5:3."'},
+  'Ratios & Percentages':      {tip:'Convert percentages to decimals before multiplying. Set up ratios as fractions.',ex:'2/3 of 30 girls = 20 girls; 75% of 20 boys = 15 boys. Difference = 5.'},
+  'Exponents/Radicals':        {tip:'Rules: aᵐ × aⁿ = aᵐ⁺ⁿ; (aᵐ)ⁿ = aᵐⁿ; a^(m/n) = ⁿ√(aᵐ). Simplify step by step.',ex:'⁴√(a⁹) = a^(9/4) = a² × a^(1/4) = a²·⁴√a.'},
+  'Exponents & Radicals':      {tip:'aᵐ × aⁿ = aᵐ⁺ⁿ; √45 − √5 = 3√5 − √5 = 2√5.',ex:'√45 = √(9×5) = 3√5, so √45 − √5 = 2√5.'},
+  'Exponents':                 {tip:'(a/b)ⁿ = aⁿ/bⁿ. A negative base raised to an odd power stays negative.',ex:'(−5/4)³ = −125/64.'},
+  'Geometry (3D/Spatial Reasoning)':{tip:'For painted cube problems, think about which unit cubes touch which faces. Corner cubes touch 3 faces, edge cubes touch 2.',ex:'In a 3×3×3 cube, 8 corners touch 2 colors, 12 edges touch 2 faces — count carefully.'},
+  'Geometry (3D/Surface Area)': {tip:'Surface area of a cylinder = 2πr² + 2πrh. For cubes removed, add the newly exposed faces.',ex:'Removing a corner cube exposes 3 new faces but hides 3 old ones — net change = 0.'},
+  'Geometry (Area)':           {tip:'Rectangle: A=l×w. Triangle: A=½bh. Composite shapes: break into rectangles and triangles, add or subtract.',ex:'Area of a 12×5 rectangle minus a 5×5 cutout = 60 − 25 = 35.'},
+  'Geometry (Area/Rectangle)': {tip:'Area = length × width. Rearrange to find missing dimension.',ex:'A=144, l=16 → w = 144÷16 = 9 cm.'},
+  'Geometry (Area/Composite)': {tip:'Break composite shapes into rectangles. Add or subtract their areas.',ex:'An L-shape = one big rectangle minus a smaller rectangle cut from the corner.'},
+  'Rates/Word Problems':       {tip:'Identify rate × time = amount. For meeting problems, add their speeds since they move toward each other.',ex:'Owen at 40 steps/min + Jillian at 80 = 120 steps/min combined → meet in 360÷120 = 3 min.'},
+  'Rates & Word Problems':     {tip:'Rate × Time = Work or Distance. For work problems, add rates when working together.',ex:'Two people meeting: add their speeds. 360 steps ÷ (40+80) steps/min = 3 min.'},
+  'Inequalities':              {tip:'Solve like an equation, but flip the inequality sign when multiplying or dividing by a negative number.',ex:'4x−5 ≥ 2x−3 → 2x ≥ 2 → x ≥ 1.'},
+  'Sequences & Patterns':      {tip:'Find the pattern: arithmetic (add/subtract), geometric (multiply/divide). Check consecutive differences or ratios.',ex:'●●●▲▲ repeats every 5. Position 12 = position 2 of the cycle (12÷5 remainder 2) → ●.'},
+  'Sequences/Patterns':        {tip:'Find the common ratio or difference. For geometric sequences, each term = previous × ratio.',ex:'112/a² × (a/2) = 56/a → ratio = a/2.'},
+  'Sequences & Arithmetic':    {tip:'Find the common difference. Use formula: aₙ = a₁ + (n−1)d.',ex:'0.75, 0.85, 0.95 ... d=0.10. Day n runs 0.75+(n−1)×0.10. Set >5 and solve.'},
+  'Geometry (Angles)':         {tip:'Angles in a quadrilateral sum to 360°. Angles on a straight line sum to 180°. Vertical angles are equal.',ex:'50+45+40+80+? = 360 → ? = 145°.'},
+  'Geometry (Parallel Lines/Angles)':{tip:'When parallel lines are cut by a transversal: alternate interior angles are equal; co-interior (same-side) angles sum to 180°.',ex:'If BG ∥ CE and one angle is 120°, use co-interior angles to find the other.'},
+  'Geometry (Angles/Intersecting Lines)':{tip:'Vertical angles are equal. Angles on a straight line sum to 180°. Use these to find missing angles step by step.',ex:'If 5 lines intersect at one point, use the given angles and straight-line rule to find the unknown.'},
+  'Data Interpretation (Graphs)':{tip:'Read graph axes carefully. For bar graphs, estimate bar height against the scale. Compare categories directly.',ex:'"Fractional part" = the bar segment for education ÷ total bar length for that category.'},
+  'Data Interpretation':       {tip:'Read the graph title and axes. Answer only what the graph shows — do not assume trends beyond the data.',ex:'Greatest increase: look for the steepest upward slope between two consecutive points.'},
+  'Statistics (Median)':       {tip:'Sort all values first, then find the middle. For an even count, average the two middle values.',ex:'9,10,12,15,22,26,32,36 → middle two are 22 and 15 → median = (22+15)/2 ... wait, sort first: 9,10,12,15,22,26,32,36 → median = (15+22)/2 = 18.5... round to nearest option.'},
+  'Statistics (Median/Mode)':  {tip:'Median: sort then pick middle. Mode: most frequent. Adding values can shift both — test each answer choice.',ex:'Add 20,30 to 10,10,15,20,20,25,40 → sorted: 10,10,15,20,20,20,25,30,40 → median=20, mode=20.'},
+  'Functions':                 {tip:'Substitute the x-value directly into the function. Work carefully with negatives: (−x)³ = −(x³).',ex:'g(−1) = (−(−1))³ + 1 = (1)³ + 1 = 2.'},
+  'Functions (Composition)':   {tip:'Work from the inside out. First evaluate the inner function, then plug that result into the outer function.',ex:'g(−2)=3(−2)²=12=k; then f(k)=f(12)=9−12=−3.'},
+  'Custom Operations':         {tip:'Just substitute the given values into the custom definition. Treat the symbol like a formula.',ex:'8 ♦ 4 = 2(8)/4 + 4/8 = 4 + 0.5 = 4.5. Match to answer choices.'},
+  'Algebra (Polynomials)':     {tip:'Distribute carefully, then combine like terms. Subtract polynomials by flipping the sign of every term being subtracted.',ex:'(5x³+7x−3)−(x³−2x²+7x−8) = 4x³+2x²−11+8 = 4x³+2x²−11... wait: 5x³−x³=4x³; −3+8=5 → 4x³+2x²+5. Check signs carefully!'},
+  'Algebra (Polynomials/Simplify)':{tip:'Distribute the minus sign to every term in the second polynomial, then combine like terms.',ex:'(5x³+7x−3)−(x³−2x²+7x−8) = 4x³+2x²−3+8 = 4x³+2x²+5.'},
+  'Algebra (Factoring)':       {tip:'Factor out the GCF first. Then look for patterns: difference of squares, or factor trinomials.',ex:'5x²y²+10x²y+5xy² = 5xy(xy+2x+y).'},
+  'Geometry (Transformations/Rotations)':{tip:'For 90° clockwise rotation about point (a,b): new point = (b + (y−b), a − (x−a)). Sketch it to visualize.',ex:'Rotate 90° clockwise about (1,1): (x,y) → (1+(y−1), 1−(x−1)).'},
+  'Counting & Combinatorics':  {tip:'For arrangements with restrictions, treat the restricted items as one unit. Then arrange the units, then arrange within the unit.',ex:'Emma and Lily must sit together: treat as 1 unit → 4 units, 4! = 24 arrangements × 2 (Emma/Lily order) = 48.'},
+  'Number Theory (Factors)':   {tip:'Find the prime factorization of both numbers. For divisibility, find what factors are missing.',ex:'225=3²×5²; 120=2³×3×5. For 225|120m, need 5² in 120m: 120 has 5¹, need one more 5. So m=5.'},
+  'Number Theory (Divisibility)':{tip:'If (a+b) is divisible by 11, then anything with (a+b) as a factor is also divisible by 11.',ex:'(a+b) is divisible by 11 → (a+b)+11 is also divisible by 11; 11×a + b may not be.'},
+  'Number Theory':             {tip:'Use prime factorization. Divisibility by 11: alternate digit sum method.',ex:'If (a+b) divisible by 11, then (a+b)+11 is too.'},
+  'Coordinate Geometry (Lines/Equations)':{tip:'Slope = (y2−y1)/(x2−x1). y-intercept: set x=0. For perpendicular lines, slopes multiply to −1.',ex:'Line through (0,3) with slope 1/3 → y = x/3 + 3.'},
+  'Coordinate Geometry (Slope)':{tip:'Slope = rise/run = (y2−y1)/(x2−x1). Plug in the two points.',ex:'Points (3,−4) and (c,2): slope = (2−(−4))/(c−3) = −3 → 6 = −3(c−3) → c=1.'},
+  'Coordinate Geometry (Perpendicular Lines)':{tip:'Perpendicular slopes are negative reciprocals: if slope = m, perpendicular slope = −1/m.',ex:'Line y=2x+1 has slope 2; perpendicular slope = −1/2. Use point (4,2) to find equation, then plug in x=−1.'},
+  'Coordinate Geometry (Graphing Lines)':{tip:'y = mx means the line passes through the origin with slope m. y = x/2 has slope 1/2 (rises 1 for every 2 right).',ex:'y = x/2: at x=2, y=1. At x=−2, y=−1. The line goes through the origin.'},
+  'Coordinate Geometry (Translations)':{tip:'Translation: add/subtract to coordinates. Moving 3 left, 2 down → subtract 3 from x, subtract 2 from y.',ex:'B=(8,4): after 3 left and 2 down → B\'=(5,2).'},
+  'Geometry (Volume/Cylinders)':{tip:'Volume of cylinder = πr²h. If volume must be ¼ of original with same height, radius must be halved (since r² is quartered → r is halved).',ex:'V = πr²h; ¼V = π(r/2)²h → diameter halved → new diameter = 4.'},
+  'Geometry (Volume/Cubes)':   {tip:'Volume of cube = s³. Find s by taking the cube root of the volume.',ex:'512 = s³ → s = 8 inches.'},
+  'Geometry (Volume)':         {tip:'Volume of rectangular prism = l × w × h. Check all answer choices by multiplying.',ex:'8×9×4 = 288 ✓.'},
+  'Geometry (Triangle Inequality)':{tip:'For valid triangles: the sum of any two sides must be greater than the third side.',ex:'3,5,8: 3+5=8, not >, so INVALID. 3,5,9: 3+5<9, INVALID. 3,5,8 fails — try 3,5,8 → not valid.'},
+  'Geometry (Circles/Arc Length)':{tip:'Arc length = (central angle / 360) × 2πr. Set up the equation and solve for r.',ex:'8π = (80/360) × 2πr = (2/9)πr → r = 8π × 9/(2π) = 36.'},
+  'Geometry (Circles/Surface Area)':{tip:'Total surface area of cylinder = 2πr² + 2πrh.',ex:'r=5, h=10: SA = 2π(25) + 2π(5)(10) = 50π + 100π = 150π.'},
+  'Geometry (Spatial)':        {tip:'For logic/spatial problems, draw a diagram. Work through constraints one at a time.',ex:'One house between red and blue, two between green and white — try each placement systematically.'},
+  'Geometry (Spatial/Logic)':  {tip:'Draw a diagram and test each constraint. Use process of elimination.',ex:'If there\'s exactly 1 house between red and blue, they can\'t be adjacent or more than 2 apart.'},
+  'Algebra (Linear Equations)': {tip:'Collect variable terms on one side, constants on the other. Then divide to isolate the variable.',ex:'10x−5=5x+15 → 5x=20 → x=4.'},
+  'Algebra (Rational Expressions)':{tip:'Find a common denominator, combine fractions, then simplify.',ex:'2/x + 3/(x−1) = 2(x−1)/[x(x−1)] + 3x/[x(x−1)] = (5x−2)/(x²−x).'},
+  'Algebra (Substitution)':    {tip:'Substitute given values directly into the expression. Evaluate step by step.',ex:'2x−y²: x=5, y=3 → 2(5)−9 = 10−9 = 1.'},
+  'Arithmetic':                {tip:'Leftover = total − (pieces × length). 88 − 6×14 = 88 − 84 = 4 inches.',ex:'6 pieces of 14 inches = 84 inches used; 88−84=4 leftover.'},
+  'Place Value/Number Sense':  {tip:'In a decimal like 927.64, the digits after the decimal are tenths (6) and hundredths (4). The 6 is in the tenths place.',ex:'927.64: the underlined 6 is in the tenths place = 6 tenths.'},
+  'Word Problems':             {tip:'Read carefully. Identify what you know and what you need. Write an equation and solve.',ex:'"1/3 of each truck\'s weight is 2.4 tons" → full weight = 7.2 tons. Total for 3 trucks = 21.6 tons. Multiply 2.4 by 9.'},
+  'Multiplication/Word Problems':{tip:'One-third of each truck = 2.4 tons → full truck = 7.2 tons. Three trucks = 21.6 tons. 2.4 × 9 = 21.6.',ex:'2.4 × 9 = 21.6, so multiply 2.4 by 9.'},
+
+  // READING topics
+  'Author Purpose/Main Idea':  {tip:'Ask: "Why did the author write this?" Choices often include: to describe, to argue, to explain, to entertain, or to introduce. The correct answer matches the overall purpose, not just one detail.',ex:'"Introduce a character" is a purpose; "describe a setting" is another. Avoid choices that are too narrow or too broad.'},
+  'Main Idea/Purpose':         {tip:'The main idea is what the whole passage is about — not just one part. Eliminate choices that only describe a detail.',ex:'If a passage is about koalas throughout history, "koalas nearly went extinct" is a detail, not the main idea.'},
+  'Main Idea':                 {tip:'Ask yourself: what is the passage mostly about? The main idea must be supported by every paragraph, not just one.',ex:'"The clown fish and sea anemone help each other" covers the whole passage; "the clown fish is immune to poison" is just a detail.'},
+  'Inference':                 {tip:'Inference questions ask what is implied but not directly stated. Use evidence from the passage to reason to a conclusion. Don\'t over-infer — stay close to the text.',ex:'"The passage suggests..." → find the closest supported conclusion. Eliminate choices that go too far beyond the text.'},
+  'Character Analysis':        {tip:'Look at the character\'s actions, words, and how others respond to them. Ask: what kind of person behaves this way?',ex:'Mr. Duffy eats at the same places, lives far from the city — these details point to "creature of habit," not "frustrated artist."'},
+  'Author Purpose':            {tip:'Why does the author include this specific detail or use this specific word? Think about what effect it creates on the reader.',ex:'"The author uses the expression \'like this\' to compare two opposing methods" — it sets up a contrast the whole passage builds on.'},
+  'Vocabulary in Context':     {tip:'Don\'t just pick the most common definition — find which meaning fits the sentence. Substitute each answer choice back into the sentence to check.',ex:'"Fill" in "fill all the energy needs of Japan" → "satisfy" fits better than "load" because we\'re talking about meeting a need, not physically loading something.'},
+  'Literary Devices':          {tip:'Common devices: simile (like/as), metaphor (is), personification (human quality to non-human), alliteration (repeated initial sounds), hyperbole (exaggeration), onomatopoeia (sound words).',ex:'"Carry out orders like automatons" → simile (comparing with "like"), drawn from robotics.'},
+  'Literary Devices (Poetry)': {tip:'In poetry, look for: imagery (vivid description), metaphor, simile, personification, and tone shifts. Notice line breaks and repetition as intentional choices.',ex:'"A deep sound strikes like a rising knell" — simile comparing the sound of cannon to a funeral bell.'},
+  'Evidence/Supporting Details':{tip:'The correct answer will be directly supported by specific words or sentences in the passage. Eliminate choices that sound reasonable but aren\'t actually stated.',ex:'"According to the passage..." → find the exact sentence that proves or disproves each choice.'},
+  'Supporting Details':        {tip:'Go back and find the specific line in the passage that supports or contradicts each answer choice. Don\'t rely on memory.',ex:'"All of the following EXCEPT" → find three that ARE stated, the odd one out is the answer.'},
+  'Tone/Attitude':             {tip:'Ask: how does the author feel about the subject? Look for charged words (positive or negative). Tone choices: admiring, critical, neutral, ironic, cautious, indignant.',ex:'Words like "downright mockery" signal indignation. "With his usual brilliance" signals admiration.'},
+  'Tone & Attitude':           {tip:'Identify emotionally charged words. "Green politicians mindlessly supporting" = critical/scathing tone, not neutral.',ex:'"Scathing" means harshly critical — look for dismissive or angry language in the first paragraph.'},
+  'Vocabulary/Contrast':       {tip:'When a passage uses "not A but B," the contrast structure tells you what the author means. "Not to give" vs "to secure" — find the distinction.',ex:'"Not to give the blessings of liberty, but to secure them" → granting vs safeguarding.'},
+  'Text Structure':            {tip:'How is the passage organized? Cause/effect, compare/contrast, problem/solution, chronological? The structure reveals the author\'s purpose.',ex:'A passage that presents a popular belief then debunks it uses a "misconception → correction" structure.'},
+  'Metaphor/Figurative Language':{tip:'A metaphor says one thing IS another without using "like" or "as." Figurative language is never literally true — interpret its meaning.',ex:'"Fame pays off in the currency of fame" → the author compares fame to money using a financial metaphor.'},
+  'Figurative Language':       {tip:'Identify what is being compared or described non-literally. Ask: what does this image or comparison tell us about the subject?',ex:'"Carry out orders like automatons" compares team members to robots, suggesting mechanical obedience.'},
+  'Tone Comparison':           {tip:'Compare how the author treats two different subjects. One may be described admiringly while the other is criticized.',ex:'Passage praises "authentic professionals" while mocking "green politicians" — tone shifts between paragraphs.'},
+  "Author's Argument":         {tip:'Identify the main claim and the evidence used to support it. Ask: what is the author trying to convince us of?',ex:'The speaker argues she committed no crime by voting because the Constitution\'s "we, the people" includes women.'},
+  'Inference (Poetry)':        {tip:'In poetry, images carry meaning. Ask what the image or event symbolizes or suggests about the speaker\'s feelings.',ex:'"Hark! a deep sound strikes like a rising knell" — the sudden sound signals danger approaching, not celebration.'},
+  'Inference (Historical)':    {tip:'Use context clues about the historical period to infer meaning. Eliminate choices that contradict the passage\'s stated facts.',ex:'The Tory aristocracy "looked forward with satisfaction" to Southern success — infer they opposed democracy and favored the South.'},
+  'Author Purpose/Qualification':{tip:'"The author uses the word \'if\' in order to..." — qualifications like if, perhaps, may, might signal the author is hedging, not stating fact.',ex:'"If their gift is genuine" → the author qualifies the statement to avoid overgeneralizing.'},
+  'Irony':                     {tip:'Irony means the opposite of what is expected or stated. Look for situations where the surface meaning contradicts the deeper meaning.',ex:'"\'Twas but the wind" is ironic reassurance — the reader knows it\'s actually cannon fire.'},
+  'Irony/Reassurance':         {tip:'When a character or speaker dismisses a threat ("it\'s nothing"), but the reader knows it\'s real, that\'s dramatic irony.',ex:'"Did ye not hear it? — No; \'twas but the wind" — reassuring, but the next line confirms the cannon.'},
+  'Tone (Poetry)':             {tip:'Track how the tone shifts through the poem. A celebratory opening that turns ominous creates dramatic contrast.',ex:'Lines 1-8 are joyful; line 9 ("But hush! hark!") marks a sudden shift to alarm.'},
+};
+
+function getTopicTip(topic) {
+  if (TOPIC_TIPS[topic]) return TOPIC_TIPS[topic];
+  // fuzzy match: check if any key is contained in the topic or vice versa
+  for (const key of Object.keys(TOPIC_TIPS)) {
+    if (topic.includes(key) || key.includes(topic)) return TOPIC_TIPS[key];
+  }
+  return {tip:'Review this topic by re-reading the relevant questions and answer explanations in your test booklet.', ex:''};
+}
+
+function renderVocabList(containerId, wrongQNums, test) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  const synonymWords = [], analogyPairs = [];
+  wrongQNums.forEach(q => {
+    if (q <= 30) {
+      const entry = VOCAB_DATA[test] && VOCAB_DATA[test][q];
+      if (entry) synonymWords.push({q, ...entry});
+    } else {
+      const entry = ANALOGY_DATA[test] && ANALOGY_DATA[test][q];
+      if (entry) analogyPairs.push({q, ...entry});
+    }
+  });
+  let html = '';
+  if (synonymWords.length > 0) {
+    html += `<div style="font-size:13px;color:var(--grey);margin-bottom:10px;">📌 Study these ${synonymWords.length} word${synonymWords.length>1?'s':''} — you missed them on the synonym questions.</div>
+    <table style="width:100%;border-collapse:collapse;font-size:13px;">
+      <thead><tr>
+        <th style="background:var(--navy);color:white;padding:10px 14px;text-align:left;border-radius:8px 0 0 0;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;">Q#</th>
+        <th style="background:var(--navy);color:white;padding:10px 14px;text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;">Word</th>
+        <th style="background:var(--navy);color:white;padding:10px 14px;text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;">Definition</th>
+        <th style="background:var(--navy);color:white;padding:10px 14px;text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;">Synonyms</th>
+        <th style="background:var(--navy);color:white;padding:10px 14px;text-align:left;border-radius:0 8px 0 0;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;">Example</th>
+      </tr></thead>
+      <tbody>
+        ${synonymWords.map((v,i)=>`<tr style="${i%2===1?'background:#fafaf7':''}">
+          <td style="padding:9px 14px;border-bottom:1px solid var(--cream2);color:var(--grey);font-weight:700;">${v.q}</td>
+          <td style="padding:9px 14px;border-bottom:1px solid var(--cream2);font-weight:700;color:var(--navy);white-space:nowrap;">${v.w}</td>
+          <td style="padding:9px 14px;border-bottom:1px solid var(--cream2);color:var(--navy2);">${v.d}</td>
+          <td style="padding:9px 14px;border-bottom:1px solid var(--cream2);color:var(--green);font-weight:600;">${v.s}</td>
+          <td style="padding:9px 14px;border-bottom:1px solid var(--cream2);color:var(--grey);font-style:italic;">${v.e}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+  }
+  if (analogyPairs.length > 0) {
+    html += `<div style="margin-top:${synonymWords.length>0?'22px':'0'};">
+      <div style="font-size:13px;color:var(--grey);margin-bottom:10px;">🔗 Analogy relationships you missed — review the connection between these word pairs.</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;">
+        ${analogyPairs.map(a=>`<div style="background:var(--cream2);border-radius:8px;padding:8px 14px;font-size:13px;color:var(--navy2);">
+          <span style="font-weight:700;">Q${a.q}:</span> ${a.pair} <span style="color:var(--grey);font-size:12px;display:block;margin-top:2px;">${a.rel}</span>
+        </div>`).join('')}
+      </div>
+      <div style="background:var(--white);border-left:4px solid var(--gold);border-radius:0 10px 10px 0;padding:12px 16px;font-size:13px;color:var(--navy2);line-height:1.6;">
+        💡 <strong>Analogy Strategy:</strong> For each pair, name the relationship in one phrase (e.g., "tool used by person," "part of a whole," "degree of same quality"). Then find the answer choice with the <em>exact same</em> relationship.
+      </div>
+    </div>`;
+  }
+  container.innerHTML = html || '<p style="color:var(--grey);font-size:13px;">No vocabulary items to display.</p>';
+}
+
+function renderTopicTips(containerId, weakTopics) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  const topics = weakTopics.slice(0, 5);
+  let html = `<div style="font-size:13px;color:var(--grey);margin-bottom:14px;">Here are targeted tips and strategies for the topics you missed:</div>`;
+  topics.forEach(topic => {
+    const {tip, ex} = getTopicTip(topic);
+    html += `<div class="topic-tip">
+      <div class="topic-tip-name">${topic}</div>
+      <div style="font-size:13px;color:var(--navy2);line-height:1.7;margin-top:6px;">💡 ${tip}</div>
+      ${ex ? `<div style="background:var(--cream);border-radius:8px;padding:9px 13px;margin-top:8px;font-size:13px;color:var(--navy2);"><strong>Example:</strong> ${ex}</div>` : ''}
+    </div>`;
+  });
+  container.innerHTML = html;
+}
+
+async function downloadPDF(){
+  const {jsPDF}=window.jspdf;
+  const el=document.getElementById('report');
+  const btns=el.querySelectorAll('.no-print');
+  btns.forEach(b=>b.style.display='none');
+  const canvas=await html2canvas(el,{scale:2,useCORS:true,backgroundColor:'#f8f4ed'});
+  btns.forEach(b=>b.style.display='');
+  const pdf=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+  const pw=pdf.internal.pageSize.getWidth(),ph=pdf.internal.pageSize.getHeight();
+  const ih=(canvas.height*pw)/canvas.width;
+  let y=0,rem=ih;
+  while(rem>0){
+    const sh=Math.min(ph,rem);
+    const cp=document.createElement('canvas');
+    cp.width=canvas.width;cp.height=(sh/ih)*canvas.height;
+    cp.getContext('2d').drawImage(canvas,0,(y/ih)*canvas.height,canvas.width,cp.height,0,0,canvas.width,cp.height);
+    if(y>0)pdf.addPage();
+    pdf.addImage(cp.toDataURL('image/jpeg',0.95),'JPEG',0,0,pw,sh);
+    y+=sh;rem-=sh;
+  }
+  const name=document.getElementById('studentName').value.trim().replace(/\s+/g,'_')||'Student';
+  pdf.save(`SSAT_Report_${name}_Test${state.test}.pdf`);
+}
+
+function resetAll(){
+  state={test:null,sections:[],answers:{}};
+  document.querySelectorAll('.test-btn').forEach(b=>b.classList.remove('selected'));
+  ['step3','step4'].forEach(id=>document.getElementById(id).classList.add('hidden'));
+  document.getElementById('report').style.display='none';
+  document.getElementById('studentName').value='';
+  document.getElementById('dateCompleted').value='';
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+</script>
+</body>
+</html>
