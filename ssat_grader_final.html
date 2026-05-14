@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SSAT Practice Test Grader</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&display=swap');
+  :root {
+    --navy:#0d1b2a; --navy2:#1a2d42; --gold:#c9a84c; --gold-light:#e8c97a;
+    --cream:#f8f4ed; --cream2:#f0ead8; --green:#2d7a4f; --green-light:#e8f5ee;
+    --red:#b83232; --red-light:#fdeaea; --grey:#8a8a8a; --white:#ffffff;
+    --shadow:0 4px 24px rgba(13,27,42,0.10);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--navy);min-height:100vh;}
+  .header{background:var(--navy);padding:28px 40px;display:flex;align-items:center;gap:18px;border-bottom:3px solid var(--gold);}
+  .header-logo{width:44px;height:44px;background:var(--gold);border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:var(--navy);}
+  .header h1{font-family:'Playfair Display',serif;font-size:26px;font-weight:700;color:var(--white);}
+  .header h1 span{color:var(--gold-light);}
+  .container{max-width:980px;margin:0 auto;padding:40px 24px 80px;}
+  .card{background:var(--white);border-radius:16px;box-shadow:var(--shadow);padding:32px;margin-bottom:28px;border:1.5px solid var(--cream2);}
+  .card-title{font-family:'Playfair Display',serif;font-size:20px;font-weight:600;color:var(--navy);margin-bottom:20px;padding-bottom:14px;border-bottom:2px solid var(--cream2);display:flex;align-items:center;gap:10px;}
+  .step-badge{background:var(--navy);color:var(--gold);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;border-radius:20px;padding:3px 12px;}
+  label{font-size:14px;font-weight:500;color:var(--navy2);display:block;margin-bottom:6px;}
+  input[type="text"],input[type="date"]{width:100%;padding:12px 16px;border:1.5px solid #d5cfc4;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:15px;color:var(--navy);background:var(--cream);outline:none;transition:border-color 0.2s;}
+  input:focus{border-color:var(--gold);background:var(--white);}
+  .form-row{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+  .test-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+  .test-btn{border:2px solid var(--cream2);background:var(--cream);border-radius:12px;padding:16px 12px;cursor:pointer;text-align:center;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;color:var(--navy2);transition:all 0.2s;}
+  .test-btn:hover{border-color:var(--gold);background:#fdf8ee;}
+  .test-btn.selected{border-color:var(--navy);background:var(--navy);color:var(--white);}
+  .test-icon{font-size:22px;display:block;margin-bottom:6px;}
+  .section-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
+  .section-check{display:flex;align-items:center;gap:12px;border:2px solid var(--cream2);border-radius:10px;padding:14px 16px;cursor:pointer;transition:all 0.2s;user-select:none;}
+  .section-check:hover{border-color:var(--gold);}
+  .section-check.checked{border-color:var(--navy);background:#f0f4f8;}
+  .check-box{width:20px;height:20px;border:2px solid #c0bab0;border-radius:5px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.2s;}
+  .section-check.checked .check-box,.full-checked .check-box{background:var(--navy);border-color:var(--navy);}
+  .check-box svg{display:none;}
+  .section-check.checked .check-box svg,.full-checked .check-box svg{display:block;}
+  .section-label{font-size:14px;font-weight:500;color:var(--navy2);}
+  .section-count{font-size:12px;color:var(--grey);}
+  /* DROPDOWN TABLE */
+  .answer-table-wrap{overflow-x:auto;}
+  .answer-table{width:100%;border-collapse:collapse;font-size:14px;}
+  .answer-table th{background:var(--navy);color:var(--white);font-size:12px;font-weight:600;padding:10px 12px;text-align:left;white-space:nowrap;}
+  .answer-table th:first-child{border-radius:8px 0 0 0;}
+  .answer-table th:last-child{border-radius:0 8px 0 0;}
+  .answer-table td{padding:8px 10px;border-bottom:1px solid var(--cream2);vertical-align:middle;}
+  .answer-table tr:last-child td{border-bottom:none;}
+  .answer-table tr:nth-child(even) td{background:#fafaf7;}
+  .q-num-cell{font-weight:700;color:var(--grey);font-size:13px;width:36px;text-align:center;}
+  .topic-cell{font-size:12px;color:var(--grey);}
+  .ans-select{padding:6px 10px;border:1.5px solid #d0ccc4;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;color:var(--navy);background:var(--white);cursor:pointer;outline:none;transition:all 0.2s;min-width:90px;}
+  .ans-select:focus{border-color:var(--gold);}
+  .ans-select.sel-correct{background:var(--green-light);border-color:var(--green);color:var(--green);}
+  .ans-select.sel-wrong{background:var(--red-light);border-color:var(--red);color:var(--red);}
+  .ans-select.sel-skip{background:#f0f0f0;border-color:#aaa;color:#666;}
+  .result-badge{display:inline-flex;align-items:center;font-size:12px;font-weight:700;padding:3px 10px;border-radius:20px;}
+  .result-badge.correct{background:var(--green-light);color:var(--green);}
+  .result-badge.wrong{background:var(--red-light);color:var(--red);}
+  .result-badge.skip{background:#f0f0f0;color:#888;}
+  .result-badge.none{background:transparent;color:#ccc;}
+  .section-answers{margin-bottom:32px;}
+  .section-answers-title{font-size:16px;font-weight:600;color:var(--navy);margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+  .section-badge{background:var(--cream2);color:var(--navy2);font-size:12px;font-weight:500;padding:3px 10px;border-radius:20px;}
+  .section-divider{border:none;border-top:2px solid var(--cream2);margin:28px 0;}
+  .btn-primary{background:var(--navy);color:var(--white);font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;padding:14px 32px;border:none;border-radius:10px;cursor:pointer;transition:all 0.2s;display:inline-flex;align-items:center;gap:8px;}
+  .btn-primary:hover{background:var(--navy2);transform:translateY(-1px);}
+  .btn-gold{background:var(--gold);color:var(--navy);font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;padding:14px 32px;border:none;border-radius:10px;cursor:pointer;transition:all 0.2s;display:inline-flex;align-items:center;gap:8px;}
+  .btn-gold:hover{background:var(--gold-light);}
+  .btn-outline{background:transparent;color:var(--navy);border:2px solid var(--navy);font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;padding:12px 28px;border-radius:10px;cursor:pointer;transition:all 0.2s;display:inline-flex;align-items:center;gap:8px;}
+  .btn-outline:hover{background:var(--navy);color:white;}
+  .btn-row-end{display:flex;justify-content:flex-end;gap:12px;margin-top:28px;}
+  /* REPORT */
+  #report{display:none;}
+  .report-header{background:var(--navy);border-radius:16px;padding:32px;margin-bottom:24px;color:var(--white);}
+  .report-title{font-family:'Playfair Display',serif;font-size:28px;font-weight:700;color:var(--gold-light);margin-bottom:6px;}
+  .report-sub{font-size:14px;color:#aabbc8;}
+  .report-meta{display:flex;gap:28px;margin-top:18px;flex-wrap:wrap;}
+  .report-meta-item label{font-size:11px;color:#8899aa;text-transform:uppercase;letter-spacing:1px;}
+  .report-meta-item span{font-size:16px;font-weight:600;color:var(--white);display:block;}
+  .score-table{width:100%;border-collapse:collapse;margin-bottom:8px;}
+  .score-table th{background:var(--navy);color:var(--white);font-size:12px;font-weight:600;padding:10px 14px;text-align:left;text-transform:uppercase;letter-spacing:0.5px;}
+  .score-table th:first-child{border-radius:8px 0 0 0;}
+  .score-table th:last-child{border-radius:0 8px 0 0;}
+  .score-table td{padding:10px 14px;border-bottom:1px solid var(--cream2);font-size:14px;}
+  .score-table tr:last-child td{border-bottom:none;}
+  .score-table tr:nth-child(even) td{background:var(--cream);}
+  .correct-mark{color:var(--green);font-weight:700;}
+  .wrong-mark{color:var(--red);font-weight:700;}
+  .skip-mark{color:var(--grey);}
+  .raw-score-row td{background:var(--navy)!important;color:var(--white)!important;font-weight:700;font-size:15px;}
+  .score-summary{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:24px;}
+  .score-pill{background:var(--white);border:2px solid var(--cream2);border-radius:12px;padding:14px 20px;min-width:130px;}
+  .score-pill .pill-label{font-size:11px;color:var(--grey);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:4px;}
+  .score-pill .pill-score{font-family:'Playfair Display',serif;font-size:28px;font-weight:700;color:var(--navy);}
+  .score-pill .pill-detail{font-size:12px;color:var(--grey);}
+  .feedback-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px;}
+  .feedback-box{border-radius:12px;padding:20px;}
+  .feedback-box.good{background:var(--green-light);border:1.5px solid #b5ddc8;}
+  .feedback-box.improve{background:var(--red-light);border:1.5px solid #f0c0c0;}
+  .feedback-box h4{font-size:14px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+  .feedback-box.good h4{color:var(--green);}
+  .feedback-box.improve h4{color:var(--red);}
+  .feedback-box ul{list-style:none;}
+  .feedback-box ul li{font-size:13px;padding:5px 0;border-bottom:1px solid rgba(0,0,0,0.06);color:var(--navy2);}
+  .feedback-box ul li:last-child{border-bottom:none;}
+  .topic-tag{display:inline-block;background:rgba(0,0,0,0.06);border-radius:4px;padding:1px 7px;font-size:11px;font-weight:600;margin-right:4px;}
+  /* AI SECTION */
+  .ai-section{margin-top:24px;border:2px solid var(--gold);border-radius:14px;overflow:hidden;}
+  .ai-section-header{background:linear-gradient(135deg,var(--navy) 0%,#1e3a5a 100%);padding:18px 22px;display:flex;align-items:center;gap:12px;}
+  .ai-section-header h4{font-family:'Playfair Display',serif;font-size:17px;font-weight:600;color:var(--gold-light);}
+  .ai-section-header p{font-size:13px;color:#aabbc8;margin-top:2px;}
+  .ai-icon{font-size:28px;}
+  .ai-body{padding:22px;background:#fefcf8;}
+  .ai-loading{display:flex;align-items:center;gap:12px;color:var(--grey);font-size:14px;padding:12px 0;}
+  .spinner{width:20px;height:20px;border:2.5px solid #ddd;border-top-color:var(--gold);border-radius:50%;animation:spin 0.8s linear infinite;flex-shrink:0;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .ai-topic-block{margin-bottom:22px;}
+  .ai-topic-block:last-child{margin-bottom:0;}
+  .ai-topic-name{font-size:14px;font-weight:700;color:var(--navy);margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+  .ai-topic-name::before{content:'';display:inline-block;width:4px;height:16px;background:var(--gold);border-radius:2px;}
+  .practice-q{background:var(--white);border:1.5px solid var(--cream2);border-radius:10px;padding:14px 16px;margin-bottom:10px;}
+  .practice-q .q-text{font-size:14px;color:var(--navy);margin-bottom:10px;font-weight:500;}
+  .practice-q .q-options{font-size:13px;color:var(--navy2);line-height:1.9;}
+  .practice-q .q-answer{margin-top:10px;padding-top:10px;border-top:1px solid var(--cream2);font-size:13px;color:var(--green);font-weight:600;}
+  .tip-block{background:var(--white);border-left:4px solid var(--gold);border-radius:0 10px 10px 0;padding:12px 16px;margin-bottom:10px;font-size:13px;color:var(--navy2);line-height:1.6;}
+  .show-answer-btn{background:none;border:1px solid var(--green);color:var(--green);font-size:12px;font-weight:600;border-radius:6px;padding:4px 10px;cursor:pointer;margin-top:8px;font-family:'DM Sans',sans-serif;transition:all 0.15s;}
+  .show-answer-btn:hover{background:var(--green);color:white;}
+  .answer-reveal{display:none;margin-top:8px;}
+  .ai-error{color:var(--red);font-size:13px;padding:12px 0;}
+  .hidden{display:none!important;}
+  .note{font-size:12px;color:var(--grey);margin-top:8px;}
+  @media(max-width:640px){.test-grid{grid-template-columns:1fr 1fr;}.feedback-grid{grid-template-columns:1fr;}.form-row{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-logo">S</div>
+  <h1>SSAT <span>Practice Test Grader</span></h1>
+</div>
+
+<div class="container">
+
+  <div class="card" id="step1">
+    <div class="card-title"><span class="step-badge">Step 1</span> Student Information</div>
+    <div class="form-row">
+      <div><label>Student Name</label><input type="text" id="studentName" placeholder="e.g. Jane Smith"></div>
+      <div><label>Date of Completion</label><input type="date" id="dateCompleted"></div>
+    </div>
+  </div>
+
+  <div class="card" id="step2">
+    <div class="card-title"><span class="step-badge">Step 2</span> Select Test</div>
+    <div class="test-grid">
+      <button class="test-btn" onclick="selectTest('I')" id="btn-test-I"><span class="test-icon">📝</span>Practice Test I</button>
+      <button class="test-btn" onclick="selectTest('II')" id="btn-test-II"><span class="test-icon">📝</span>Practice Test II</button>
+      <button class="test-btn" onclick="selectTest('III')" id="btn-test-III"><span class="test-icon">📝</span>Practice Test III<div style="font-size:11px;color:#aaa;margin-top:4px;">(Coming soon)</div></button>
+      <button class="test-btn" onclick="selectTest('IV')" id="btn-test-IV"><span class="test-icon">📝</span>Practice Test IV<div style="font-size:11px;color:#aaa;margin-top:4px;">(Coming soon)</div></button>
+    </div>
+  </div>
+
+  <div class="card hidden" id="step3">
+    <div class="card-title"><span class="step-badge">Step 3</span> Select Sections Completed</div>
+    <p class="note" style="margin-bottom:14px;">Select the sections completed. Selecting all four will automatically check "Full Test."</p>
+    <div class="section-grid" id="sectionGrid"></div>
+    <div style="margin-top:12px;padding:14px 16px;border:2px solid var(--cream2);border-radius:10px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:all 0.2s;" id="fullTestRow" onclick="handleFullTestClick()">
+      <div class="check-box" id="fullTestBox">
+        <svg width="12" height="10" viewBox="0 0 12 10" fill="none"><path d="M1 5L4.5 8.5L11 1.5" stroke="white" stroke-width="2" stroke-linecap="round"/></svg>
+      </div>
+      <div>
+        <div class="section-label" style="font-weight:600;">Select all sections (Full Test)</div>
+        <div class="section-count">Sections 1, 2, 3, and 4</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card hidden" id="step4">
+    <div class="card-title"><span class="step-badge">Step 4</span> Enter Student Answers</div>
+    <p class="note" style="margin-bottom:18px;">Use the dropdown to select each answer. Rows highlight <span style="color:var(--green);font-weight:600;">green</span> for correct, <span style="color:var(--red);font-weight:600;">red</span> for wrong, and grey for skipped.</p>
+    <div id="answersContainer"></div>
+    <div class="btn-row-end"><button class="btn-primary" onclick="generateReport()">📊 Generate Report</button></div>
+  </div>
+
+  <div id="report">
+    <div class="report-header">
+      <div class="report-title">Score Report</div>
+      <div class="report-sub">SSAT Upper Level — Practice Test</div>
+      <div class="report-meta">
+        <div class="report-meta-item"><label>Student</label><span id="rName">—</span></div>
+        <div class="report-meta-item"><label>Date</label><span id="rDate">—</span></div>
+        <div class="report-meta-item"><label>Test</label><span id="rTest">—</span></div>
+      </div>
+    </div>
+    <div id="reportBody"></div>
+    <div class="btn-row-end no-print" style="margin-top:8px;">
+      <button class="btn-outline" onclick="resetAll()">↺ Start Over</button>
+      <button class="btn-gold" onclick="downloadPDF()">⬇ Save as PDF</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const ANSWER_KEYS = {
+  I: {
+    1:{answers:['D','D','C','A','C','C','B','D','E','D','B','E','B','B','A','C','D','B','E','D','D','C','D','E','A'],
+       topics:['Coordinate Geometry','Algebra/Expressions','Geometry (Volume)','Estimation/Approximation','Geometry (Euler Paths)','Statistics (Mean/Average)','Geometry (Perimeter)','Rates/Speed','Algebra (Systems of Equations)','Geometry (Segments/Ratios)','Unit Conversion','Algebra (Equations)','Probability','Set Theory/Venn Diagrams','Algebra (Number Problems)','Algebra (Simplifying Expressions)','Order of Operations','Algebra (Factoring/Quadratics)','Number Properties (Digits)','Geometry (Triangles/Pythagorean)','Percentages','Geometry (Circles/Area)','Ratios/Proportions','Exponents/Radicals','Geometry (3D/Spatial Reasoning)']},
+    2:{answers:['E','E','B','C','A','B','E','B','D','A','D','C','D','A','E','C','E','A','C','B','B','D','C','A','E','C','D','A','E','B','B','D','A','C','E','B','A','D','E','A'],
+       topics:['Author Purpose/Main Idea','Inference','Character Analysis','Author Purpose','Vocabulary in Context','Inference','Literary Devices','Evidence/Supporting Details','Vocabulary in Context','Inference','Author Purpose','Text Structure','Inference','Author Purpose','Author Purpose/Main Idea','Inference','Author Purpose','Vocabulary/Contrast','Tone/Attitude','Vocabulary in Context','Inference','Vocabulary in Context','Tone/Attitude','Author Purpose','Vocabulary in Context','Inference (Poetry)','Literary Devices (Poetry)','Vocabulary in Context (Poetry)','Vocabulary in Context (Poetry)','Inference (Poetry)','Vocabulary in Context','Author Purpose/Qualification','Literary Devices','Tone Comparison','Literary Devices',"Author's Argument",'Metaphor/Figurative Language','Inference (Historical)','Vocabulary in Context','Tone/Attitude']},
+    3:{answers:['B','D','B','C','E','D','A','A','C','B','A','E','D','A','D','C','C','B','D','E','A','E','C','A','B','D','A','B','A','C','D','B','C','C','E','E','B','A','D','E','C','B','D','B','B','C','A','C','A','B','A','D','C','E','D','A','B','C','E','B'],
+       topics:['Synonym (Space/Architecture)','Synonym (Doubt/Uncertainty)','Synonym (Finance/Income)','Synonym (Comfort/Support)','Synonym (Summary)','Synonym (Confirmation)','Synonym (Noise/Chaos)','Synonym (Provoke/Stir)','Synonym (Grandeur)','Synonym (Burden/Encumber)','Synonym (Flamboyant/Showy)','Synonym (Tentative/Provisional)','Synonym (Maze/Confusion)','Synonym (Immature/Callow)','Synonym (Hesitation/Misgiving)','Synonym (Neutral/Impartial)','Synonym (Insight/Acumen)','Synonym (Difficulty/Predicament)','Synonym (Boast/Vaunt)','Synonym (Secret/Covert)','Synonym (Peculiarity/Idiosyncrasy)','Synonym (Violation/Transgression)','Synonym (Expert/Maven)','Synonym (Arrogant/Haughty)','Synonym (Straddle/Bestride)','Synonym (Balance/Equilibrium)','Synonym (Disinclined/Reluctant)','Synonym (Building/Edifice)','Synonym (Ponder/Ruminate)','Synonym (Era/Epoch)','Analogy (Tool:User)','Analogy (Type:Category)','Analogy (Manner:Action)','Analogy (Leader:Subject)','Analogy (Part:Whole)','Analogy (Type:Category)','Analogy (Person:Activity)','Analogy (Command Center:Vehicle)','Analogy (Synonym Relationship)','Analogy (Type:Category)','Analogy (Sense:Organ)','Analogy (Tool:Function)','Analogy (Process:Result)','Analogy (Equipment:Sport)','Analogy (Degree/Scale)','Analogy (Ceremony:Event)','Analogy (Tool:Execute)','Analogy (Antonym Relationship)','Analogy (Cause:Effect)','Analogy (Antonym Relationship)','Analogy (Degree/Extreme)','Analogy (Type:Story Form)','Analogy (Trait:Quality)','Analogy (Cause:Effect)','Analogy (Measure:Attribute)','Analogy (Antonym/Skill)','Analogy (Effective:Purpose)','Analogy (Subtle:Broader)','Analogy (Disposition:Action)','Analogy (Characteristic:Behavior)']},
+    4:{answers:['C','D','B','E','C','B','A','B','B','C','E','A','D','D','D','B','E','A','C','C','E','E','B','C','D'],
+       topics:['Geometry (Area/Rectangle)','Algebra (Equations)','Rates/Word Problems','Inequalities','Geometry (Circles/Circumference)','Sequences/Patterns','Geometry (Angles)','Data Interpretation (Graphs)','Unit Conversion/Word Problems','Percentages','Custom Operations','Geometry (Angles/Intersecting Lines)','Statistics (Mean)','Functions','Number Properties (Odd/Even)','Rates/Word Problems','Algebra (Polynomials)','Statistics (Median)','Coordinate Geometry (Lines/Equations)','Geometry (Volume/Cylinders)','Algebra (Polynomials/Simplify)','Geometry (Transformations/Rotations)','Counting/Combinatorics','Number Theory (Factors)','Coordinate Geometry (Perpendicular Lines)']}
+  },
+  II: {
+    1:{answers:['E','B','D','A','B','C','A','C','E','D','D','A','B','C','E','C','A','D','C','B','D','C','B','C','D'],
+       topics:['Coordinate Geometry','Arithmetic (Operations)','Algebra (Linear Equations)','Exponents','Geometry (Angles/Triangles)','Algebra (Inequalities)','Ratios/Percentages','Set Theory/Venn Diagrams','Custom Operations','Functions/Linear','Geometry (Perimeter)','Statistics (Mean/Average)','Unit Conversion/Estimation','Geometry (Area/Composite)','Algebra (Factoring/Quadratics)','Geometry (Pythagorean Theorem)','Algebra (Quadratic Equations)','Sequences/Patterns','Geometry (3D/Surface Area)','Rates/Word Problems','Coordinate Geometry (Slope)','Geometry (Parallel Lines/Angles)','Exponents/Radicals','Geometry (Circles/Surface Area)','Algebra (Rational Expressions)']},
+    2:{answers:['D','E','D','B','A','A','D','C','C','E','B','D','C','A','E','C','A','E','A','D','B','D','E','B','C','B','D','A','C','E','D','A','E','B','E','E','B','D','C','E'],
+       topics:['Character Analysis','Inference','Vocabulary in Context','Author Purpose','Tone/Attitude','Inference','Evidence/Supporting Details','Evidence/Supporting Details','Vocabulary in Context','Main Idea','Vocabulary in Context','Tone/Attitude','Metaphor/Figurative Language','Tone/Attitude','Vocabulary in Context','Inference','Inference','Evidence/Supporting Details','Tone/Attitude','Literary Devices (Poetry)','Vocabulary in Context','Inference','Vocabulary in Context','Author Purpose/Inference','Tone/Attitude','Inference (Poetry)','Tone (Poetry)','Tone/Attitude','Irony/Reassurance','Inference (Poetry)','Inference','Inference','Inference','Evidence/Supporting Details','Inference','Inference','Evidence/Supporting Details','Inference','Tone/Attitude','Inference (Historical)']},
+    3:{answers:['E','A','D','B','B','C','A','E','C','B','A','B','D','B','A','E','D','C','B','A','B','A','E','C','D','A','D','B','C','A','C','B','A','E','A','D','D','B','A','E','D','A','C','D','B','A','D','B','B','C','E','C','A','A','B','D','D','B','E','C'],
+       topics:['Synonym (Respect/Esteem)','Synonym (Friendly/Amiable)','Synonym (Distasteful/Unsavory)','Synonym (Prophet/Seer)','Synonym (Illustrate/Exemplify)','Synonym (Separate/Detach)','Synonym (Unnecessary/Superfluous)','Synonym (Rogue/Scalawag)','Synonym (Praise/Accolade)','Synonym (Confuse/Bewilder)','Synonym (Inborn/Congenital)','Synonym (Elegant/Exquisite)','Synonym (Stronghold/Bastion)','Synonym (Boldness/Audacity)','Synonym (Hate/Detest)','Synonym (Justification/Rationale)','Synonym (Announcement/Proclamation)','Synonym (Improve/Amend)','Synonym (Attempt/Endeavor)','Synonym (Ghost/Apparition)','Synonym (Crowd/Throng)','Synonym (Pretend/Feign)','Synonym (Chide/Rebuke)','Synonym (Atmosphere/Ambiance)','Synonym (Suppress/Quash)','Synonym (Favorable/Auspicious)','Synonym (Shrink/Dwindle)','Synonym (Split/Cleft)','Synonym (Recuperate/Convalesce)','Synonym (Uproar/Tumult)','Analogy (Type:Smaller)','Analogy (Synonym:Action)','Analogy (Characteristic:Degree)','Analogy (Part:Body System)','Analogy (Adjective:Harm)','Analogy (Confinement:Custody)','Analogy (Survey:Subject)','Analogy (Craft:Material)','Analogy (Characteristic:Action)','Analogy (Degree/Scale)','Analogy (Type:Story)','Analogy (Trait:Quality)','Analogy (Wave:Water)','Analogy (Action:Pride)','Analogy (Made from:Material)','Analogy (Action:Summary)','Analogy (Result:Agreement)','Analogy (Path:Medium)','Analogy (Type:Smaller)','Analogy (Cause:Effect)','Analogy (Person:Quality)','Analogy (Valuable:Type)','Analogy (Opposite:Pure)','Analogy (Cover:Identity)','Analogy (Destroy:Demolition)','Analogy (Opposite:Sensitivity)','Analogy (Lacking:Awareness)','Analogy (Susceptibility:Influence)','Analogy (Support:Approval)','Analogy (Domain:Adjective)']},
+    4:{answers:['C','A','D','B','A','D','C','E','C','B','D','B','E','C','E','C','B','A','B','C','A','A','A','B','D'],
+       topics:['Estimation/Approximation','Algebra (Substitution)','Data Interpretation (Graphs)','Place Value/Number Sense','Coordinate Geometry (Graphing Lines)','Probability','Inequalities','Geometry (Segments/Algebra)','Ratios/Proportions','Coordinate Geometry (Translations)','Algebra (Systems of Equations)','Geometry (Volume/Cubes)','Multiplication/Word Problems','Algebra (Factoring)','Geometry (Triangle Inequality)','Sequences/Arithmetic','Statistics (Median/Mode)','Number Theory (Divisibility)','Geometry (Area/Triangles)','Order of Operations','Counting/Combinatorics','Functions (Composition)','Exponents/Radicals','Geometry (Spatial/Logic)','Geometry (Circles/Arc Length)']}
+  }
+};
+
+
+// VOCAB WORDS for Section 3 (keyed by question number, 1-indexed)
+// Synonyms are Q1-30, Analogies are Q31-60
+// For analogies we store the key relationship words
+const VOCAB_WORDS = {
+  I: {
+    1:'TERRACE',2:'DUBIOUS',3:'REVENUE',4:'CONSOLE',5:'SYNOPSIS',
+    6:'CORROBORATE',7:'HUBBUB',8:'INSTIGATE',9:'SUBLIME',10:'ENCUMBER',
+    11:'FLAMBOYANT',12:'TENTATIVE',13:'LABYRINTH',14:'CALLOW',15:'QUALM',
+    16:'IMPARTIAL',17:'ACUMEN',18:'PREDICAMENT',19:'VAUNT',20:'COVERT',
+    21:'IDIOSYNCRASY',22:'TRANSGRESSION',23:'MAVEN',24:'HAUGHTY',25:'BESTRIDE',
+    26:'EQUILIBRIUM',27:'RELUCTANT',28:'EDIFICE',29:'RUMINATE',30:'EPOCH',
+    31:'Barber / Scissors',32:'Theft / Crime',33:'Swagger / Walk',34:'General / Soldier',35:'Shell / Egg',
+    36:'Novel / Fictional',37:'Wayfarer / Travel',38:'Bridge / Ship',39:'Criticize / Castigate',40:'Peddler / Merchant',
+    41:'Visual / Sight',42:'Shovel / Dig',43:'Capture / Custody',44:'Barbell / Lift',45:'Measure / Size',
+    46:'Wedding / Marriage',47:'Implement / Plan',48:'Secure / Danger',49:'Alibi / Exonerate',50:'Idle / Work',
+    51:'Debacle / Failure',52:'Saga / Story',53:'Faithful / Loyalty',54:'Bother / Annoyance',55:'Altitude / High',
+    56:'Inept / Skill',57:'Cogent / Convince',58:'Nuance / Distinction',59:'Taciturn / Speak',60:'Furtive / Stealth'
+  },
+  II: {
+    1:'ESTEEM',2:'AMIABLE',3:'UNSAVORY',4:'SEER',5:'EXEMPLIFY',
+    6:'DETACH',7:'SUPERFLUOUS',8:'SCALAWAG',9:'ACCOLADE',10:'BEWILDER',
+    11:'CONGENITAL',12:'EXQUISITE',13:'BASTION',14:'AUDACITY',15:'DETEST',
+    16:'RATIONALE',17:'PROCLAMATION',18:'AMEND',19:'ENDEAVOR',20:'APPARITION',
+    21:'THRONG',22:'FEIGN',23:'REBUKE',24:'AMBIANCE',25:'QUASH',
+    26:'AUSPICIOUS',27:'DWINDLE',28:'CLEFT',29:'CONVALESCE',30:'TUMULT',
+    31:'Fib / Deception',32:'Watch / See',33:'Facilitate / Easy',34:'Femur / Bone',35:'Detrimental / Harm',
+    36:'Imprison / Custody',37:'Census / Population',38:'Textile / Weave',39:'Inquisitive / Ask',40:'Minuscule / Small',
+    41:'Legend / Story',42:'Prowess / Skillful',43:'Ripple / Wave',44:'Boast / Pride',45:'Tapestry / Thread',
+    46:'Summarize / Synopsis',47:'Consensus / Agree',48:'Trajectory / Air',49:'Cottage / House',50:'Lull / Sleep',
+    51:'Hermit / Reclusive',52:'Asset / Valuable',53:'Pure / Adulterate',54:'Disguise / Identity',55:'Raze / Demolition',
+    56:'Callous / Sensitive',57:'Oblivious / Awareness',58:'Suggestible / Influence',59:'Endorse / Approval',60:'Celestial / Heaven'
+  }
+};
+
+const SECTION_INFO = {
+  1:{name:'Section 1 (Math)',count:25},
+  2:{name:'Section 2 (Reading Comprehension)',count:40},
+  3:{name:'Section 3 (Verbal)',count:60},
+  4:{name:'Section 4 (Math)',count:25}
+};
+
+let state={test:null,sections:[],answers:{}};
+
+function selectTest(t){
+  if(t==='III'||t==='IV'){alert('Tests III and IV coming soon!');return;}
+  state={test:t,sections:[],answers:{}};
+  document.querySelectorAll('.test-btn').forEach(b=>b.classList.remove('selected'));
+  document.getElementById('btn-test-'+t).classList.add('selected');
+  buildSectionGrid();
+  document.getElementById('step3').classList.remove('hidden');
+  document.getElementById('step4').classList.add('hidden');
+  document.getElementById('report').style.display='none';
+}
+
+function buildSectionGrid(){
+  const grid=document.getElementById('sectionGrid');
+  grid.innerHTML='';
+  setFullTestVisual(false);
+  [1,2,3,4].forEach(s=>{
+    const d=document.createElement('div');
+    d.className='section-check'; d.id='sec-check-'+s;
+    d.onclick=()=>toggleSection(s,d);
+    d.innerHTML=`<div class="check-box"><svg width="12" height="10" viewBox="0 0 12 10" fill="none"><path d="M1 5L4.5 8.5L11 1.5" stroke="white" stroke-width="2" stroke-linecap="round"/></svg></div>
+    <div><div class="section-label">${SECTION_INFO[s].name}</div><div class="section-count">${SECTION_INFO[s].count} questions</div></div>`;
+    grid.appendChild(d);
+  });
+}
+
+function toggleSection(s,el){
+  const idx=state.sections.indexOf(s);
+  if(idx>=0){state.sections.splice(idx,1);el.classList.remove('checked');}
+  else{state.sections.push(s);el.classList.add('checked');}
+  state.sections.sort((a,b)=>a-b);
+  setFullTestVisual(state.sections.length===4);
+  rebuildAnswers();updateStep4();
+}
+
+function handleFullTestClick(){
+  const all=state.sections.length===4;
+  state.sections=all?[]:[1,2,3,4];
+  [1,2,3,4].forEach(s=>{
+    const el=document.getElementById('sec-check-'+s);
+    all?el.classList.remove('checked'):el.classList.add('checked');
+  });
+  setFullTestVisual(!all);
+  rebuildAnswers();updateStep4();
+}
+
+function setFullTestVisual(on){
+  const box=document.getElementById('fullTestBox'),row=document.getElementById('fullTestRow');
+  if(on){box.style.background='var(--navy)';box.style.borderColor='var(--navy)';box.querySelector('svg').style.display='block';row.style.borderColor='var(--navy)';row.style.background='#f0f4f8';}
+  else{box.style.background='';box.style.borderColor='#c0bab0';box.querySelector('svg').style.display='none';row.style.borderColor='var(--cream2)';row.style.background='';}
+}
+
+function updateStep4(){
+  if(state.sections.length>0){buildAnswerInputs();document.getElementById('step4').classList.remove('hidden');}
+  else document.getElementById('step4').classList.add('hidden');
+}
+
+function rebuildAnswers(){
+  Object.keys(state.answers).forEach(s=>{if(!state.sections.includes(parseInt(s)))delete state.answers[s];});
+  state.sections.forEach(s=>{
+    if(!state.answers[s]){state.answers[s]={};for(let q=1;q<=SECTION_INFO[s].count;q++)state.answers[s][q]=null;}
+  });
+}
+
+function buildAnswerInputs(){
+  rebuildAnswers();
+  const container=document.getElementById('answersContainer');
+  container.innerHTML='';
+  state.sections.forEach((s,idx)=>{
+    const key=ANSWER_KEYS[state.test][s],count=SECTION_INFO[s].count;
+    const div=document.createElement('div');
+    div.className='section-answers';
+    let rows='';
+    for(let q=1;q<=count;q++){
+      const correctAns=key.answers[q-1],topic=key.topics[q-1];
+      rows+=`<tr id="row-${s}-${q}">
+        <td class="q-num-cell">${q}</td>
+        <td><select class="ans-select" id="sel-${s}-${q}" onchange="handleSelect(${s},${q},'${correctAns}',this)">
+          <option value="">— Select —</option>
+          <option value="A">A</option><option value="B">B</option><option value="C">C</option>
+          <option value="D">D</option><option value="E">E</option><option value="--">Skip (—)</option>
+        </select></td>
+        <td style="font-weight:600;color:var(--navy2);">${correctAns}</td>
+        <td><span class="result-badge none" id="badge-${s}-${q}">—</span></td>
+        <td class="topic-cell">${topic}</td>
+      </tr>`;
+    }
+    div.innerHTML=`<div class="section-answers-title">${SECTION_INFO[s].name}<span class="section-badge">${count} questions</span></div>
+    <div class="answer-table-wrap"><table class="answer-table">
+      <thead><tr><th>#</th><th>Your Answer</th><th>Correct Answer</th><th>Result</th><th>Topic</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>`;
+    if(idx<state.sections.length-1)div.innerHTML+='<hr class="section-divider">';
+    container.appendChild(div);
+    for(let q=1;q<=count;q++){
+      if(state.answers[s][q]){const sel=document.getElementById(`sel-${s}-${q}`);if(sel){sel.value=state.answers[s][q];handleSelect(s,q,key.answers[q-1],sel);}}
+    }
+  });
+}
+
+function handleSelect(section,q,correctAns,sel){
+  const val=sel.value;
+  state.answers[section][q]=val||null;
+  const badge=document.getElementById(`badge-${section}-${q}`);
+  sel.className='ans-select';
+  if(!val){badge.className='result-badge none';badge.textContent='—';}
+  else if(val==='--'){sel.classList.add('sel-skip');badge.className='result-badge skip';badge.textContent='Skipped';}
+  else if(val===correctAns){sel.classList.add('sel-correct');badge.className='result-badge correct';badge.textContent='✓ Correct';}
+  else{sel.classList.add('sel-wrong');badge.className='result-badge wrong';badge.textContent='✗ Wrong';}
+}
+
+function generateReport(){
+  const name=document.getElementById('studentName').value.trim()||'Student';
+  const dateVal=document.getElementById('dateCompleted').value;
+  const dateStr=dateVal?new Date(dateVal+'T12:00:00').toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'}):'Not specified';
+  document.getElementById('rName').textContent=name;
+  document.getElementById('rDate').textContent=dateStr;
+  document.getElementById('rTest').textContent='Practice Test '+state.test;
+
+  const body=document.getElementById('reportBody');
+  body.innerHTML='';
+
+  state.sections.forEach(s=>{
+    const key=ANSWER_KEYS[state.test][s],count=SECTION_INFO[s].count;
+    const div=document.createElement('div');
+    div.className='card';
+    let correct=0,wrong=0,skipped=0,tableRows='';
+    let goodTopics={},weakTopics={};
+
+    for(let q=1;q<=count;q++){
+      const correctAns=key.answers[q-1],topic=key.topics[q-1];
+      const student=state.answers[s]?state.answers[s][q]:null;
+      let mark,score;
+      if(!student){mark='<span class="skip-mark">—</span>';score='<span class="skip-mark">—</span>';skipped++;if(!weakTopics[topic])weakTopics[topic]=[];weakTopics[topic].push(q);}
+      else if(student==='--'){mark='<span class="skip-mark">— skipped</span>';score='<span class="skip-mark">—</span>';skipped++;if(!weakTopics[topic])weakTopics[topic]=[];weakTopics[topic].push(q);}
+      else if(student===correctAns){mark='<span class="correct-mark">✓</span>';score='<span class="correct-mark">+1</span>';correct++;if(!goodTopics[topic])goodTopics[topic]=[];goodTopics[topic].push(q);}
+      else{mark=`<span class="wrong-mark">✗ (${student})</span>`;score='<span class="wrong-mark">−0.25</span>';wrong++;if(!weakTopics[topic])weakTopics[topic]=[];weakTopics[topic].push(q);}
+      tableRows+=`<tr><td>${q}</td><td>${student&&student!=='--'?student:'—'}</td><td>${correctAns}</td><td>${mark}</td><td style="font-size:12px;color:var(--grey)">${topic}</td><td>${score}</td></tr>`;
+    }
+
+    const rawScore=Math.round((correct-wrong*0.25)*100)/100;
+    const goodKeys=Object.keys(goodTopics),weakKeys=Object.keys(weakTopics);
+    const goodHTML=goodKeys.length?goodKeys.map(t=>`<li><span class="topic-tag">Q${goodTopics[t].join(', Q')}</span> ${t}</li>`).join(''):'<li>Keep practicing — you\'ll get there!</li>';
+    const weakHTML=weakKeys.length?weakKeys.map(t=>`<li><span class="topic-tag">Q${weakTopics[t].join(', Q')}</span> ${t}</li>`).join(''):'<li>No major weak areas — great job!</li>';
+    const uniqueWeak=weakKeys.slice(0,6);
+    const aiId=`ai-body-${s}`;
+    const isVerbalSection=(s===3);
+
+    // For Section 3: collect the actual words from wrong/skipped question numbers
+    let wrongWords=[];
+    if(isVerbalSection){
+      const allWrongQs=Object.values(weakTopics).flat();
+      allWrongQs.forEach(q=>{
+        const word=VOCAB_WORDS[state.test]&&VOCAB_WORDS[state.test][q];
+        if(word&&!wrongWords.includes(word))wrongWords.push(word);
+      });
+      wrongWords=wrongWords.slice(0,15);
+    }
+
+    const showAI=isVerbalSection?wrongWords.length>0:uniqueWeak.length>0;
+    const aiIcon=isVerbalSection?'📖':'🤖';
+    const aiTitle=isVerbalSection?'Vocabulary Review List':'AI-Powered Practice &amp; Strategy Tips';
+    const aiSub=isVerbalSection?'Definitions for every word you missed — study these!':'Custom questions and tips for your weak topics';
+    const aiLoading=isVerbalSection?'Building your vocabulary list…':'Generating personalized practice…';
+
+    div.innerHTML=`
+      <div class="card-title">${SECTION_INFO[s].name}</div>
+      <div class="score-summary">
+        <div class="score-pill"><div class="pill-label">Raw Score</div><div class="pill-score">${rawScore}</div><div class="pill-detail">out of ${count}</div></div>
+        <div class="score-pill"><div class="pill-label">Correct</div><div class="pill-score" style="color:var(--green)">${correct}</div><div class="pill-detail">+${correct} pts</div></div>
+        <div class="score-pill"><div class="pill-label">Wrong</div><div class="pill-score" style="color:var(--red)">${wrong}</div><div class="pill-detail">−${(wrong*0.25).toFixed(2)} pts</div></div>
+        <div class="score-pill"><div class="pill-label">Skipped</div><div class="pill-score" style="color:var(--grey)">${skipped}</div><div class="pill-detail">no penalty</div></div>
+      </div>
+      <div style="overflow-x:auto;"><table class="score-table">
+        <thead><tr><th>#</th><th>Your Answer</th><th>Correct Answer</th><th>Result</th><th>Topic</th><th>Score</th></tr></thead>
+        <tbody>${tableRows}<tr class="raw-score-row"><td colspan="5">Raw Score</td><td>${rawScore}</td></tr></tbody>
+      </table></div>
+      <div style="margin-top:24px;">
+        <div style="font-family:'Playfair Display',serif;font-size:17px;font-weight:600;color:var(--navy);margin-bottom:12px;">Performance Analysis</div>
+        <div class="feedback-grid">
+          <div class="feedback-box good"><h4>✅ What You Did Well</h4><ul>${goodHTML}</ul></div>
+          <div class="feedback-box improve"><h4>📌 What to Work On</h4><ul>${weakHTML}</ul></div>
+        </div>
+      </div>
+      ${showAI?`<div class="ai-section">
+        <div class="ai-section-header"><div class="ai-icon">${aiIcon}</div>
+          <div><h4>${aiTitle}</h4><p>${aiSub}</p></div>
+        </div>
+        <div class="ai-body" id="${aiId}"><div class="ai-loading"><div class="spinner"></div> ${aiLoading}</div></div>
+      </div>`:''}`;
+
+    body.appendChild(div);
+    if(isVerbalSection&&wrongWords.length>0) generateVocabList(aiId,wrongWords);
+    else if(!isVerbalSection&&uniqueWeak.length>0) generateAIPractice(aiId,SECTION_INFO[s].name,uniqueWeak);
+  });
+
+  document.getElementById('report').style.display='block';
+  document.getElementById('report').scrollIntoView({behavior:'smooth'});
+}
+
+async function generateVocabList(containerId, words) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  container.innerHTML = '<div class="ai-loading"><div class="spinner"></div> Building your vocabulary list…</div>';
+
+  // Split words into synonym words (plain caps) vs analogy pairs (contain '/')
+  const synonymWords = words.filter(w => !w.includes('/'));
+  const analogyPairs = words.filter(w => w.includes('/'));
+
+  let allWords = [];
+
+  // Fetch definitions for synonym words in one call (batch up to 15)
+  if (synonymWords.length > 0) {
+    const wordList = synonymWords.join(', ');
+    const prompt = `Give the definition of each of these vocabulary words as they appear on the SSAT: ${wordList}.
+For each word also give one example sentence and two common synonyms.
+Respond ONLY with this JSON array, no extra text:
+[{"word":"WORD","definition":"concise definition","synonyms":["syn1","syn2"],"example":"example sentence"}]`;
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 900,
+          messages: [{role:'user', content: prompt}]
+        })
+      });
+      const data = await res.json();
+      const raw = (data.content||[]).map(b=>b.text||'').join('').replace(/^```[a-z]*\n?/,'').replace(/```$/,'').trim();
+      const parsed = JSON.parse(raw);
+      allWords = allWords.concat(parsed);
+    } catch(e) {
+      allWords = allWords.concat(synonymWords.map(w=>({word:w, definition:'Could not load definition.', synonyms:[], example:''})));
+    }
+  }
+
+  // Build HTML
+  let html = '';
+
+  if (allWords.length > 0) {
+    html += `<div style="margin-bottom:16px;">
+      <div style="font-size:13px;color:var(--grey);margin-bottom:12px;">📌 Study these ${allWords.length} word${allWords.length>1?'s':''} — you missed them on the synonym questions.</div>
+      <table style="width:100%;border-collapse:collapse;font-size:14px;">
+        <thead><tr>
+          <th style="background:var(--navy);color:white;padding:10px 14px;text-align:left;border-radius:8px 0 0 0;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;">Word</th>
+          <th style="background:var(--navy);color:white;padding:10px 14px;text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;">Definition</th>
+          <th style="background:var(--navy);color:white;padding:10px 14px;text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;">Synonyms</th>
+          <th style="background:var(--navy);color:white;padding:10px 14px;text-align:left;border-radius:0 8px 0 0;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;">Example</th>
+        </tr></thead>
+        <tbody>
+          ${allWords.map((w,i)=>`<tr style="${i%2===1?'background:#fafaf7':''}">
+            <td style="padding:10px 14px;border-bottom:1px solid var(--cream2);font-weight:700;color:var(--navy);white-space:nowrap;">${w.word||''}</td>
+            <td style="padding:10px 14px;border-bottom:1px solid var(--cream2);color:var(--navy2);">${w.definition||''}</td>
+            <td style="padding:10px 14px;border-bottom:1px solid var(--cream2);color:var(--green);font-weight:600;">${(w.synonyms||[]).join(', ')}</td>
+            <td style="padding:10px 14px;border-bottom:1px solid var(--cream2);color:var(--grey);font-style:italic;">${w.example||''}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`;
+  }
+
+  if (analogyPairs.length > 0) {
+    html += `<div style="margin-top:${allWords.length>0?'20px':'0'};">
+      <div style="font-size:13px;color:var(--grey);margin-bottom:10px;">🔗 Analogy relationships you missed — review the connection between these word pairs.</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;">
+        ${analogyPairs.map(p=>`<div style="background:var(--cream2);border-radius:8px;padding:8px 14px;font-size:13px;font-weight:600;color:var(--navy2);">
+          ${p.split('/').map(w=>w.trim()).join(' <span style="color:var(--gold);margin:0 4px;">↔</span> ')}
+        </div>`).join('')}
+      </div>
+      <div class="tip-block" style="margin-top:12px;">💡 <strong>Analogy Tip:</strong> For each pair, ask "what is the relationship?" — e.g. <em>tool used by person</em>, <em>part of whole</em>, <em>degree of same quality</em>. Then find the answer choice that has the exact same relationship.</div>
+    </div>`;
+  }
+
+  container.innerHTML = html || '<p class="ai-error">No vocabulary to display.</p>';
+}
+
+async function generateAIPractice(containerId,sectionName,weakTopics){
+  const container=document.getElementById(containerId);
+  if(!container)return;
+
+  const isMath=sectionName.includes('Math'),isVerbal=sectionName.includes('Verbal');
+  // Cap at 3 topics and do one call per topic to avoid truncation
+  const topics=weakTopics.slice(0,3);
+  container.innerHTML='<div class="ai-loading"><div class="spinner"></div> Generating personalized practice…</div>';
+
+  let html='';
+  for(const topic of topics){
+    let prompt='';
+    if(isMath){
+      prompt=`You are an SSAT Upper Level math tutor. A student struggled with: "${topic}".
+Give exactly 1 SSAT-style multiple choice practice question with 5 options (A-E), the correct answer letter, a one-sentence explanation, and one short strategy tip.
+Respond ONLY with this JSON object, nothing else:
+{"topic":"${topic}","tip":"strategy tip here","question":"question text here","options":["A) ...","B) ...","C) ...","D) ...","E) ..."],"answer":"A","explanation":"one sentence explanation"}`;
+    } else if(isVerbal){
+      prompt=`You are an SSAT Upper Level verbal tutor. A student struggled with: "${topic}".
+Give exactly 1 SSAT-style synonym OR analogy question with 5 options (A-E), the correct answer letter, a one-sentence explanation, and one short strategy tip.
+Respond ONLY with this JSON object, nothing else:
+{"topic":"${topic}","tip":"strategy tip here","question":"question text here","options":["A) ...","B) ...","C) ...","D) ...","E) ..."],"answer":"A","explanation":"one sentence explanation"}`;
+    } else {
+      prompt=`You are an SSAT Upper Level reading tutor. A student struggled with: "${topic}".
+Give 1 short strategy tip and 1 example reading question (no passage needed) with 5 options (A-E) and the correct answer letter.
+Respond ONLY with this JSON object, nothing else:
+{"topic":"${topic}","tip":"strategy tip here","question":"question text here","options":["A) ...","B) ...","C) ...","D) ...","E) ..."],"answer":"A","explanation":"one sentence explanation"}`;
+    }
+
+    try {
+      const res=await fetch('https://api.anthropic.com/v1/messages',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          model:'claude-sonnet-4-20250514',
+          max_tokens:400,
+          messages:[{role:'user',content:prompt}]
+        })
+      });
+      const data=await res.json();
+      const raw=(data.content||[]).map(b=>b.text||'').join('').trim();
+      // Strip any accidental markdown fences
+      const clean=raw.replace(/^```[a-z]*\n?/,'').replace(/```$/,'').trim();
+      const t=JSON.parse(clean);
+      const opts=(t.options||[]).map(o=>`<div>${o}</div>`).join('');
+      html+=`<div class="ai-topic-block">
+        <div class="ai-topic-name">${t.topic||topic}</div>
+        ${t.tip?`<div class="tip-block">💡 <strong>Strategy Tip:</strong> ${t.tip}</div>`:''}
+        <div class="practice-q">
+          <div class="q-text">📝 ${t.question||''}</div>
+          <div class="q-options">${opts}</div>
+          <button class="show-answer-btn" onclick="this.nextElementSibling.style.display='block';this.style.display='none'">Show Answer</button>
+          <div class="answer-reveal">
+            <div class="q-answer">✓ Answer: ${t.answer||'—'}</div>
+            <div style="margin-top:6px;font-size:13px;color:#555;">${t.explanation||''}</div>
+          </div>
+        </div>
+      </div>`;
+    } catch(e){
+      html+=`<div class="ai-topic-block"><div class="ai-topic-name">${topic}</div><p class="ai-error">⚠ Could not generate for this topic. (${e.message})</p></div>`;
+    }
+  }
+
+  container.innerHTML=html||'<p class="ai-error">No content generated.</p>';
+}
+
+async function downloadPDF(){
+  const {jsPDF}=window.jspdf;
+  const el=document.getElementById('report');
+  const btns=el.querySelectorAll('.no-print');
+  btns.forEach(b=>b.style.display='none');
+  const canvas=await html2canvas(el,{scale:2,useCORS:true,backgroundColor:'#f8f4ed'});
+  btns.forEach(b=>b.style.display='');
+  const pdf=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+  const pw=pdf.internal.pageSize.getWidth(),ph=pdf.internal.pageSize.getHeight();
+  const ih=(canvas.height*pw)/canvas.width;
+  let y=0,rem=ih;
+  while(rem>0){
+    const sh=Math.min(ph,rem);
+    const cp=document.createElement('canvas');
+    cp.width=canvas.width;cp.height=(sh/ih)*canvas.height;
+    cp.getContext('2d').drawImage(canvas,0,(y/ih)*canvas.height,canvas.width,cp.height,0,0,canvas.width,cp.height);
+    if(y>0)pdf.addPage();
+    pdf.addImage(cp.toDataURL('image/jpeg',0.95),'JPEG',0,0,pw,sh);
+    y+=sh;rem-=sh;
+  }
+  const name=document.getElementById('studentName').value.trim().replace(/\s+/g,'_')||'Student';
+  pdf.save(`SSAT_Report_${name}_Test${state.test}.pdf`);
+}
+
+function resetAll(){
+  state={test:null,sections:[],answers:{}};
+  document.querySelectorAll('.test-btn').forEach(b=>b.classList.remove('selected'));
+  ['step3','step4'].forEach(id=>document.getElementById(id).classList.add('hidden'));
+  document.getElementById('report').style.display='none';
+  document.getElementById('studentName').value='';
+  document.getElementById('dateCompleted').value='';
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+</script>
+</body>
+</html>
